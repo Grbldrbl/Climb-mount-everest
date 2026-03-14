@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Climb Mount Everest - Procedural</title>
+  <title>Climb Mount Everest - Real Mountain</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #1a1a2e; overflow: hidden; }
@@ -13,94 +13,79 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex; align-items: center; justify-content: center; flex-direction: column;
     }
-
-    #menu h1 { color: #fff; font-size: 46px; margin-bottom: 24px; text-align: center; padding: 0 16px; }
+    #menu h1 { color: #fff; font-size: 42px; margin-bottom: 20px; text-align: center; padding: 0 10px; }
     #menu .input-group {
       display: flex; flex-direction: column; gap: 12px;
-      background: rgba(255,255,255,0.14); border-radius: 12px;
-      padding: 24px; min-width: 320px; width: min(92vw, 520px);
-      backdrop-filter: blur(8px);
+      background: rgba(255,255,255,0.13); border-radius: 10px; padding: 22px;
+      width: min(92vw, 540px); backdrop-filter: blur(8px);
     }
     #menu label { color: #fff; font-weight: 700; }
-    #musicUrl { padding: 12px; border-radius: 8px; border: none; font-size: 15px; }
+    #musicUrl { padding: 12px; border: none; border-radius: 8px; font-size: 15px; }
     #startBtn {
-      padding: 13px 16px; border: none; border-radius: 8px; font-weight: 700; font-size: 18px;
-      background: #4CAF50; color: #fff; cursor: pointer;
+      padding: 13px 16px; border: none; border-radius: 8px;
+      font-size: 18px; font-weight: 700; color: #fff; background: #4CAF50; cursor: pointer;
     }
-    #startBtn:hover { background: #3f9743; }
 
     #gameContainer { position: relative; width: 100vw; height: 100vh; display: none; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
-    #ui {
-      position: absolute; left: 10px; top: 10px; z-index: 100;
-      color: #fff; background: rgba(0,0,0,0.55); border-radius: 8px;
-      padding: 12px; min-width: 250px; font-size: 14px;
+    #ui, #inventory {
+      position: absolute; top: 10px; z-index: 100; color: #fff;
+      background: rgba(0,0,0,0.55); border-radius: 8px; padding: 12px;
+      font-size: 13px;
     }
+    #ui { left: 10px; min-width: 290px; }
+    #inventory { right: 10px; min-width: 190px; }
 
-    #temperature {
-      margin-top: 8px; width: 210px; height: 16px;
-      border-radius: 6px; border: 2px solid #fff; overflow: hidden; background: #333;
+    .bar-wrap {
+      width: 220px; height: 14px; background: #333;
+      border: 2px solid #fff; border-radius: 6px; overflow: hidden;
+      margin-top: 4px; margin-bottom: 6px;
     }
-    #temperatureBar {
-      height: 100%; width: 100%;
-      background: linear-gradient(90deg, #3483ff, #47d16a, #ffde59, #ff4d4d);
-    }
+    .bar { height: 100%; width: 100%; }
+
+    #temperatureBar { background: linear-gradient(90deg, #2f80ff, #39d76d, #ffe259, #ff4b4b); }
+    #oxygenBar { background: linear-gradient(90deg, #7bd3ff, #4cb8ff, #2d9dff); }
 
     .active-heat-items { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
     .heat-item-timer {
-      background: rgba(255,100,100,0.45); border: 1px solid rgba(255,140,140,0.9);
-      border-radius: 6px; padding: 5px 8px; font-size: 11px;
-    }
-
-    #inventory {
-      position: absolute; right: 10px; top: 10px; z-index: 100;
-      color: #fff; background: rgba(0,0,0,0.55); border-radius: 8px;
-      padding: 12px; font-size: 14px; min-width: 180px;
+      font-size: 11px; padding: 4px 7px; border-radius: 6px;
+      background: rgba(255,100,100,0.45); border: 1px solid rgba(255,150,150,0.9);
     }
 
     #storeMenu, #itemMenu {
       position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.92); color: #fff; z-index: 500; display: none;
-      border-radius: 12px; padding: 24px; width: min(92vw, 520px); max-height: 80vh; overflow-y: auto;
+      width: min(92vw, 560px); max-height: 80vh; overflow-y: auto;
+      background: rgba(0,0,0,0.92); color: #fff; border-radius: 12px;
+      padding: 22px; z-index: 500; display: none;
     }
-
     .store-item, .item-option {
       display: flex; align-items: center; justify-content: space-between;
-      margin: 10px 0; padding: 12px; background: rgba(255,255,255,0.09);
-      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; gap: 10px;
+      gap: 10px; margin: 10px 0; padding: 12px;
+      background: rgba(255,255,255,0.08); border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
     }
-
-    .item-info { flex: 1; min-width: 0; }
+    .item-info { flex: 1; }
     .item-name { font-weight: 700; margin-bottom: 4px; }
     .item-details { font-size: 12px; color: #cfcfcf; }
-    .item-buttons { display: flex; gap: 8px; }
     .item-btn {
-      border: none; border-radius: 6px; padding: 7px 10px; font-size: 12px;
-      background: #4CAF50; color: #fff; cursor: pointer; font-weight: 700;
+      border: none; border-radius: 6px; cursor: pointer;
+      padding: 7px 10px; font-size: 12px; font-weight: 700;
+      background: #4CAF50; color: #fff;
     }
-
     .close-btn {
       position: absolute; right: 10px; top: 10px;
-      border: none; border-radius: 6px; background: #f44336; color: #fff;
-      padding: 8px 10px; font-weight: 700; cursor: pointer;
+      border: none; border-radius: 6px; padding: 8px 10px;
+      background: #f44336; color: #fff; font-weight: 700; cursor: pointer;
     }
 
     #controlButtons {
       position: fixed; left: 16px; bottom: 16px; z-index: 200;
       display: flex; flex-direction: column; gap: 8px;
     }
-
     .control-btn {
-      border: 2px solid #fff; border-radius: 10px;
-      background: rgba(80,130,255,0.78); color: #fff;
-      font-weight: 700; font-size: 14px; padding: 12px 16px;
-      cursor: pointer; touch-action: manipulation;
-    }
-
-    @media (max-width: 768px) {
-      #ui, #inventory { font-size: 12px; padding: 10px; }
-      .control-btn { font-size: 13px; padding: 10px 13px; }
+      border: 2px solid #fff; border-radius: 10px; cursor: pointer;
+      padding: 12px 16px; font-size: 14px; font-weight: 700; color: #fff;
+      background: rgba(80,130,255,0.78); touch-action: manipulation;
     }
   </style>
 </head>
@@ -109,7 +94,7 @@
     <h1>🏔️ Climb Mount Everest</h1>
     <div class="input-group">
       <label for="musicUrl">Enter Music URL (optional):</label>
-      <input type="text" id="musicUrl" placeholder="https://example.com/music.mp3" />
+      <input type="text" id="musicUrl" placeholder="https://example.com/music.mp3">
       <button id="startBtn">Start Game</button>
     </div>
   </div>
@@ -119,11 +104,18 @@
 
     <div id="ui">
       <div>Height: <span id="heightValue">0</span> m</div>
-      <div>Biome: <span id="biomeValue">Base Camp</span></div>
+      <div>Zone: <span id="zoneValue">Base</span></div>
       <div>Money: $<span id="money">100</span></div>
+
       <div>Temperature: <span id="tempValue">122</span>°F</div>
-      <div id="temperature"><div id="temperatureBar" style="width:100%"></div></div>
+      <div class="bar-wrap"><div id="temperatureBar" class="bar"></div></div>
+
+      <div>Oxygen: <span id="oxygenValue">100</span>%</div>
+      <div class="bar-wrap"><div id="oxygenBar" class="bar"></div></div>
+
       <div>Tool: <span id="toolDisplay">Axe</span></div>
+      <div>Near shop? <span id="nearShopHint">No</span> (Press ⬇)</div>
+      <div>Camp reached: <span id="campHint">No</span></div>
       <div id="controllerStatus">Controller: Not connected</div>
       <div class="active-heat-items" id="activeHeatItems"></div>
     </div>
@@ -139,7 +131,7 @@
 
     <div id="storeMenu">
       <button class="close-btn" onclick="closeStore()">✕</button>
-      <h2>🛍️ Store</h2>
+      <h2>🛍️ Shop</h2>
       <div id="storeItems"></div>
     </div>
 
@@ -153,49 +145,51 @@
       <button class="control-btn" id="leftBtn">⬅️ LEFT</button>
       <button class="control-btn" id="rightBtn">➡️ RIGHT</button>
       <button class="control-btn" id="jumpBtn">⬆️ JUMP</button>
+      <button class="control-btn" id="downBtn">⬇️ SHOP</button>
+      <button class="control-btn" id="mineBtn">⛏️ MINE/CHOP</button>
       <button class="control-btn" id="useBtn">🔥 USE ITEM</button>
       <button class="control-btn" id="toolBtn">🔨 TOOL (1/2)</button>
     </div>
   </div>
 
   <script>
-    // =========================
-    // Core constants
-    // =========================
-    const WORLD_WIDTH = 8000;
-    const WORLD_FLOOR_Y = 7000;
-    const CHUNK_HEIGHT = 1200;
-    const PLATFORM_MIN_GAP_Y = 80;
-    const PLATFORM_MAX_GAP_Y = 170;
-    const MAX_ACTIVE_CHUNKS_BELOW = 2;
-    const MAX_ACTIVE_CHUNKS_ABOVE = 6;
+    // ============== Core ==============
+    const WORLD_WIDTH = 10000;
+    const WORLD_HEIGHT = 7900;
+
+    const GRAVITY = 0.56;
+    const PLAYER_SPEED = 5;
+    const JUMP_POWER = -12;
 
     const FREEZE_SECONDS = 240;
     const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
 
-    // =========================
-    // State
-    // =========================
+    const OXYGEN_START_ALT = 3000;
+    const OXYGEN_DRAIN_MAX = 8; // % per sec at extreme altitude
+    const OXYGEN_RECOVER = 10;  // % per sec at lower altitude
+
     const gameState = {
       menu: true,
       storeOpen: false,
       itemMenuOpen: false,
       gameOver: false,
-      musicUrl: '',
       music: null,
+      musicUrl: '',
+      won: false,
     };
 
     const player = {
-      x: WORLD_WIDTH * 0.5,
-      y: WORLD_FLOOR_Y - 60,
+      x: 260,
+      y: 0,
       width: 30,
       height: 50,
-      velocityX: 0,
-      velocityY: 0,
-      velocityXTarget: 0,
+      vx: 0,
+      vy: 0,
+      targetVx: 0,
+      isJumping: true,
       temperature: 122,
       maxTemperature: 212,
-      isJumping: false,
+      oxygen: 100,
       currentTool: 'axe',
     };
 
@@ -214,431 +208,395 @@
     let activeHeatItems = [];
     let keys = {};
     let touchControls = { left: false, right: false, jump: false };
-    let interactionPressed = false;
-    let gameLoopStarted = false;
+    let actionDown = false;
     let lastTime = performance.now();
+    let started = false;
 
-    // Procedural world containers
-    // chunks: Map<number, {platforms, resources, stores, biomeName}>
-    const chunks = new Map();
+    const terrainPoints = [];
+    const trees = [];
+    const rocks = [];
+    const shops = [];
+    const camps = [];
+    const avalanches = [];
 
-    // Camera with smooth scrolling both X and Y
+    const checkpoint = { x: 260, y: 0, reached: false };
+    let lastAvalancheSpawn = 0;
+
     const camera = { x: 0, y: 0 };
-
-    // =========================
-    // Canvas
-    // =========================
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      spriteCache.fogBySize.clear();
+    // ============== Helpers ==============
+    function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+    function getHeightMeters() {
+      return Math.max(0, Math.floor((WORLD_HEIGHT - player.y) * 0.82 - 120));
     }
-    window.addEventListener('resize', resizeCanvas);
 
-    // =========================
-    // Sprite cache
-    // =========================
-    const spriteCache = {
-      platform: new Map(),
-      resource: new Map(),
-      item: new Map(),
-      playerByBand: new Map(),
-      fogBySize: new Map(),
-    };
-
-    // =========================
-    // Gamepad
-    // =========================
-    const gamepadState = {
-      index: null,
-      connected: false,
-      name: '',
-      buttonsPrev: [],
-      left: false, right: false,
-      jumpPressed: false, usePressed: false, toolPressed: false, menuPressed: false,
-    };
-    const GAMEPAD_DEADZONE = 0.25;
+    function zoneNameByAlt(alt) {
+      if (alt < 1300) return 'Forest Line';
+      if (alt < 3000) return 'Snow Slope';
+      if (alt < 4800) return 'Ice Wall';
+      if (alt < 6400) return 'Storm Ridge';
+      return 'Death Zone';
+    }
 
     function setControllerStatus(msg) {
       document.getElementById('controllerStatus').textContent = `Controller: ${msg}`;
     }
 
-    function isSwitchLike(name = '') {
-      const n = name.toLowerCase();
-      return n.includes('nintendo') || n.includes('switch') || n.includes('pro controller') || n.includes('joy-con');
+    // ============== Gamepad (Switch friendly) ==============
+    const gamepadState = {
+      index: null, connected: false, name: '', prev: [],
+      left: false, right: false,
+      jumpPressed: false, downPressed: false, minePressed: false, usePressed: false, toolPressed: false,
+    };
+    const DEADZONE = 0.25;
+
+    function isSwitchLike(id='') {
+      const s = id.toLowerCase();
+      return s.includes('switch') || s.includes('nintendo') || s.includes('pro controller') || s.includes('joy-con');
+    }
+    function btn(gp, i) { return !!(gp.buttons[i] && gp.buttons[i].pressed); }
+    function just(gp, i) {
+      const c = btn(gp, i);
+      const p = !!gamepadState.prev[i];
+      gamepadState.prev[i] = c;
+      return c && !p;
     }
 
     window.addEventListener('gamepadconnected', (e) => {
-      const gp = e.gamepad;
-      if (gamepadState.index == null) gamepadState.index = gp.index;
+      gamepadState.index = e.gamepad.index;
       gamepadState.connected = true;
-      gamepadState.name = gp.id || 'Unknown';
-      gamepadState.buttonsPrev = new Array(gp.buttons.length).fill(false);
+      gamepadState.name = e.gamepad.id || 'Unknown';
+      gamepadState.prev = new Array(e.gamepad.buttons.length).fill(false);
       setControllerStatus(`Connected (${gamepadState.name})`);
     });
-
     window.addEventListener('gamepaddisconnected', (e) => {
       if (gamepadState.index === e.gamepad.index) {
-        gamepadState.index = null;
-        gamepadState.connected = false;
-        gamepadState.name = '';
-        gamepadState.buttonsPrev = [];
-        setControllerStatus('Not connected');
+        gamepadState.index = null; gamepadState.connected = false; gamepadState.name = '';
+        gamepadState.prev = []; setControllerStatus('Not connected');
       }
     });
 
-    function getBtn(gp, i) { return !!(gp.buttons[i] && gp.buttons[i].pressed); }
-    function justPressed(gp, i) {
-      const cur = getBtn(gp, i);
-      const prev = !!gamepadState.buttonsPrev[i];
-      gamepadState.buttonsPrev[i] = cur;
-      return cur && !prev;
-    }
-
     function pollGamepad() {
-      gamepadState.left = false;
-      gamepadState.right = false;
-      gamepadState.jumpPressed = false;
-      gamepadState.usePressed = false;
-      gamepadState.toolPressed = false;
-      gamepadState.menuPressed = false;
+      gamepadState.left = gamepadState.right = false;
+      gamepadState.jumpPressed = gamepadState.downPressed = false;
+      gamepadState.minePressed = gamepadState.usePressed = gamepadState.toolPressed = false;
 
       const pads = navigator.getGamepads ? navigator.getGamepads() : [];
       let gp = null;
-
       if (gamepadState.index != null && pads[gamepadState.index]) gp = pads[gamepadState.index];
       if (!gp) gp = Array.from(pads).find(Boolean);
-
       if (!gp) return;
 
       if (!gamepadState.connected || gamepadState.index !== gp.index) {
         gamepadState.connected = true;
         gamepadState.index = gp.index;
         gamepadState.name = gp.id || 'Unknown';
-        gamepadState.buttonsPrev = new Array(gp.buttons.length).fill(false);
+        gamepadState.prev = new Array(gp.buttons.length).fill(false);
         setControllerStatus(`Connected (${gamepadState.name})`);
       }
 
-      const ax0 = gp.axes[0] || 0;
-      const dLeft = getBtn(gp, 14);
-      const dRight = getBtn(gp, 15);
-      gamepadState.left = ax0 < -GAMEPAD_DEADZONE || dLeft;
-      gamepadState.right = ax0 > GAMEPAD_DEADZONE || dRight;
+      const ax = gp.axes[0] || 0;
+      gamepadState.left = ax < -DEADZONE || btn(gp,14);
+      gamepadState.right = ax > DEADZONE || btn(gp,15);
 
       const sw = isSwitchLike(gp.id);
-      const jumpCandidates = sw ? [0, 1] : [0];
-      const useCandidates = sw ? [2, 3] : [2];
-      const toolCandidates = sw ? [3, 2] : [3];
-      const menuCandidates = [9];
+      const jumpButtons = sw ? [0,1] : [0];
+      const mineButtons = [2];
+      const toolButtons = [3];
+      const downButtons = [13];
+      const useButtons = [9];
 
-      for (const i of jumpCandidates) if (justPressed(gp, i)) { gamepadState.jumpPressed = true; break; }
-      for (const i of useCandidates) if (justPressed(gp, i)) { gamepadState.usePressed = true; break; }
-      for (const i of toolCandidates) if (justPressed(gp, i)) { gamepadState.toolPressed = true; break; }
-      for (const i of menuCandidates) if (justPressed(gp, i)) { gamepadState.menuPressed = true; break; }
+      for (const i of jumpButtons) if (just(gp, i)) { gamepadState.jumpPressed = true; break; }
+      for (const i of mineButtons) if (just(gp, i)) { gamepadState.minePressed = true; break; }
+      for (const i of toolButtons) if (just(gp, i)) { gamepadState.toolPressed = true; break; }
+      for (const i of downButtons) if (just(gp, i)) { gamepadState.downPressed = true; break; }
+      for (const i of useButtons) if (just(gp, i)) { gamepadState.usePressed = true; break; }
+    }
 
-      for (let i = 0; i < gp.buttons.length; i++) {
-        if (gamepadState.buttonsPrev[i] === undefined) gamepadState.buttonsPrev[i] = false;
-        if (![...jumpCandidates, ...useCandidates, ...toolCandidates, ...menuCandidates].includes(i)) {
-          gamepadState.buttonsPrev[i] = !!gp.buttons[i].pressed;
+    // ============== Resize ==============
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // ============== Terrain ==============
+    function getTerrainY(worldX) {
+      const x = clamp(worldX, 0, WORLD_WIDTH);
+      const step = 40;
+      const idx = Math.floor(x / step);
+      const p1 = terrainPoints[idx] || terrainPoints[terrainPoints.length - 1];
+      const p2 = terrainPoints[idx + 1] || p1;
+      const t = (x - p1.x) / Math.max(1, (p2.x - p1.x));
+      return p1.y + (p2.y - p1.y) * t;
+    }
+
+    function localSlope(worldX) {
+      const y1 = getTerrainY(worldX - 30);
+      const y2 = getTerrainY(worldX + 30);
+      return (y2 - y1) / 60; // rise/run
+    }
+
+    function generateWorld() {
+      terrainPoints.length = 0; trees.length = 0; rocks.length = 0; shops.length = 0; camps.length = 0; avalanches.length = 0;
+
+      const step = 40;
+      const baseY = WORLD_HEIGHT - 140;
+      const peakTargetY = 780;
+
+      let x = 0;
+      while (x <= WORLD_WIDTH) {
+        const t = x / WORLD_WIDTH;
+
+        const broadRise = Math.pow(t, 1.08);
+        const upperCone = Math.pow(Math.max(0, (t - 0.62) / 0.38), 1.8);
+
+        const ridge1 = Math.sin(t * Math.PI * 3.4) * 90;
+        const ridge2 = Math.sin(t * Math.PI * 11.0 + 0.9) * 28;
+        const ridge3 = Math.sin(t * Math.PI * 24.0 + 1.7) * 10;
+
+        const ledge = (Math.abs(Math.sin(t * Math.PI * 7.0)) < 0.17) ? 25 : 0;
+        const mountainLift = (baseY - peakTargetY) * (0.78 * broadRise + 0.22 * upperCone);
+
+        let y = baseY - mountainLift + ridge1 + ridge2 + ridge3 + ledge;
+        y = clamp(y, 680, WORLD_HEIGHT - 80);
+
+        terrainPoints.push({ x, y });
+        x += step;
+      }
+
+      for (let i = 8; i < terrainPoints.length - 8; i++) {
+        const p = terrainPoints[i];
+        const pPrev = terrainPoints[i - 1];
+        const pNext = terrainPoints[i + 1];
+        const steepness = Math.abs(pNext.y - pPrev.y);
+        const altitude = WORLD_HEIGHT - p.y;
+
+        if (altitude < 2600 && steepness < 18 && Math.random() > 0.72) {
+          trees.push({
+            x: p.x + (Math.random() - 0.5) * 16,
+            yBottom: p.y,
+            width: 32 + Math.random() * 6,
+            height: 56 + Math.random() * 22,
+            chopped: false,
+          });
+        }
+
+        const rockChance = altitude > 2400 ? 0.34 : 0.22;
+        if (Math.random() < rockChance) {
+          rocks.push({
+            x: p.x + (Math.random() - 0.5) * 14,
+            yBottom: p.y,
+            width: 30 + Math.random() * 18,
+            height: 20 + Math.random() * 16,
+            mined: false,
+          });
+        }
+
+        if (i % 26 === 0 && steepness < 14) {
+          shops.push({ x: p.x - 30, yBottom: p.y, width: 60, height: 60 });
+        }
+
+        if (i % 45 === 0 && steepness < 12) {
+          camps.push({ x: p.x - 26, yBottom: p.y, width: 52, height: 36, reached: false });
+        }
+      }
+
+      player.x = 260;
+      player.y = getTerrainY(player.x) - player.height;
+      player.vy = 0;
+      player.isJumping = false;
+
+      checkpoint.x = player.x;
+      checkpoint.y = player.y;
+      checkpoint.reached = true;
+    }
+
+    // ============== Entities logic ==============
+    function isNearShop() {
+      const px = player.x + player.width * 0.5;
+      const py = player.y + player.height * 0.5;
+      for (const s of shops) {
+        const sx = s.x + s.width * 0.5;
+        const sy = s.yBottom - s.height * 0.5;
+        if (Math.hypot(px - sx, py - sy) < 120) return true;
+      }
+      return false;
+    }
+
+    function tryOpenShop() { if (isNearShop()) openStore(); }
+
+    function tryMineOrChop() {
+      const range = 82;
+      const px = player.x + player.width * 0.5;
+      const py = player.y + player.height * 0.5;
+
+      if (player.currentTool === 'axe') {
+        for (const t of trees) {
+          if (t.chopped) continue;
+          const tx = t.x + t.width * 0.5;
+          const ty = t.yBottom - t.height * 0.5;
+          if (Math.hypot(px - tx, py - ty) < range) {
+            t.chopped = true;
+            inventory.wood++;
+            updateUI();
+            return;
+          }
+        }
+      }
+
+      if (player.currentTool === 'pickaxe') {
+        for (const r of rocks) {
+          if (r.mined) continue;
+          const rx = r.x + r.width * 0.5;
+          const ry = r.yBottom - r.height * 0.5;
+          if (Math.hypot(px - rx, py - ry) < range) {
+            r.mined = true;
+            inventory.stone++;
+            updateUI();
+            return;
+          }
         }
       }
     }
 
-    // =========================
-    // Utility random
-    // =========================
-    function mulberry32(seed) {
-      return function() {
-        let t = seed += 0x6D2B79F5;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-      };
-    }
+    function checkCampReached() {
+      const px = player.x + player.width * 0.5;
+      const py = player.y + player.height;
+      let reachedAny = false;
 
-    function chunkSeed(index) {
-      // deterministic per chunk
-      return (index * 9301 + 49297) % 233280;
-    }
-
-    function biomeFromHeightMeters(h) {
-      if (h < 800) return { name: 'Base Camp', sky: '#dff4ff' };
-      if (h < 2200) return { name: 'Snowfield', sky: '#d7ecfa' };
-      if (h < 3800) return { name: 'Ice Wall', sky: '#cfe6f8' };
-      if (h < 5600) return { name: 'Storm Ridge', sky: '#c4d9ef' };
-      return { name: 'Death Zone', sky: '#b8cce4' };
-    }
-
-    // =========================
-    // Sprite generation
-    // =========================
-    function generatePlayerSprite(temperature) {
-      const band = temperature < 50 ? 'cold' : (temperature > 180 ? 'hot' : 'normal');
-      if (spriteCache.playerByBand.has(band)) return spriteCache.playerByBand.get(band);
-
-      const c = document.createElement('canvas');
-      c.width = 30; c.height = 50;
-      const s = c.getContext('2d');
-
-      let color = '#ffff00';
-      if (band === 'cold') color = '#0066ff';
-      if (band === 'hot') color = '#ff3300';
-
-      s.fillStyle = color;
-      s.fillRect(10, 5, 10, 10);
-      s.fillRect(10, 15, 10, 15);
-      s.fillRect(5, 18, 20, 5);
-      s.fillRect(10, 30, 5, 15);
-      s.fillRect(15, 30, 5, 15);
-
-      spriteCache.playerByBand.set(band, c);
-      return c;
-    }
-
-    function generatePlatformSprite(width, height, type = 'snow') {
-      const w = Math.max(1, Math.floor(width));
-      const h = Math.max(1, Math.floor(height));
-      const key = `${type}:${w}x${h}`;
-      if (spriteCache.platform.has(key)) return spriteCache.platform.get(key);
-
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      const s = c.getContext('2d');
-
-      if (type === 'snow') s.fillStyle = '#f3fbff';
-      else if (type === 'ice') s.fillStyle = '#b9dfff';
-      else if (type === 'rock') s.fillStyle = '#8b7355';
-      else s.fillStyle = '#ddd';
-
-      s.fillRect(0, 0, w, h);
-
-      s.fillStyle = type === 'rock' ? '#9c8366' : 'rgba(255,255,255,0.35)';
-      for (let i = 0; i < w; i += 10) {
-        for (let j = 0; j < h; j += 10) {
-          if (Math.random() > 0.52) s.fillRect(i, j, 8, 8);
+      for (const c of camps) {
+        const cx = c.x + c.width * 0.5;
+        const cy = c.yBottom;
+        if (Math.hypot(px - cx, py - cy) < 70) {
+          c.reached = true;
+          reachedAny = true;
+          if ((WORLD_HEIGHT - c.yBottom) > (WORLD_HEIGHT - checkpoint.y)) {
+            checkpoint.x = c.x + c.width * 0.5;
+            checkpoint.y = c.yBottom - player.height;
+          }
         }
       }
-
-      spriteCache.platform.set(key, c);
-      return c;
+      return reachedAny;
     }
 
-    function generateResourceSprite(type) {
-      if (spriteCache.resource.has(type)) return spriteCache.resource.get(type);
+    function spawnAvalanche(dt, nowSec) {
+      const alt = getHeightMeters();
+      if (alt < 4200) return;
 
-      const c = document.createElement('canvas');
-      c.width = 40; c.height = 40;
-      const s = c.getContext('2d');
+      const minInterval = 8 - Math.min(4, (alt - 4200) / 1200); // gets more frequent
+      if (nowSec - lastAvalancheSpawn < minInterval) return;
 
-      if (type === 'tree') {
-        s.fillStyle = '#8b4513'; s.fillRect(15, 20, 10, 15);
-        s.fillStyle = '#228b22'; s.beginPath(); s.arc(20, 15, 10, 0, Math.PI * 2); s.fill();
+      if (Math.random() < 0.018 * dt * 60) {
+        const aheadX = clamp(player.x + 300 + Math.random() * 600, 0, WORLD_WIDTH);
+        const y = getTerrainY(aheadX) - 90;
+        avalanches.push({
+          x: aheadX,
+          y,
+          radius: 20 + Math.random() * 12,
+          vx: -3.5 - Math.random() * 2.2,
+          life: 9,
+        });
+        lastAvalancheSpawn = nowSec;
+      }
+    }
+
+    function updateAvalanches(dt) {
+      for (let i = avalanches.length - 1; i >= 0; i--) {
+        const a = avalanches[i];
+        a.x += a.vx * (dt * 60);
+        a.y = getTerrainY(a.x) - 90;
+        a.life -= dt;
+
+        const px = player.x + player.width * 0.5;
+        const py = player.y + player.height * 0.5;
+        if (Math.hypot(px - a.x, py - a.y) < a.radius + 14) {
+          // hit: lose temperature + oxygen and knockback
+          player.temperature = Math.max(32, player.temperature - 18);
+          player.oxygen = Math.max(0, player.oxygen - 20);
+          player.vx -= 4;
+          a.life = 0;
+        }
+
+        if (a.life <= 0 || a.x < -200) avalanches.splice(i, 1);
+      }
+    }
+
+    function terrainCollisionAndSlip(dt) {
+      const leftFootX = player.x + 4;
+      const rightFootX = player.x + player.width - 4;
+      const feetY = player.y + player.height;
+
+      const groundL = getTerrainY(leftFootX);
+      const groundR = getTerrainY(rightFootX);
+      const groundY = Math.min(groundL, groundR);
+
+      if (feetY >= groundY) {
+        player.y = groundY - player.height;
+        player.vy = 0;
+        player.isJumping = false;
+
+        // ice slip at high altitude
+        const alt = getHeightMeters();
+        if (alt > 3400) {
+          const slope = localSlope(player.x);
+          const slip = slope * (alt > 5200 ? 1.7 : 1.1); // stronger in death zone
+          player.vx += slip * (dt * 60) * 0.35;
+        }
       } else {
-        s.fillStyle = '#808080'; s.beginPath(); s.arc(20, 20, 12, 0, Math.PI * 2); s.fill();
-        s.fillStyle = '#606060'; s.fillRect(15, 15, 10, 10);
-      }
-
-      spriteCache.resource.set(type, c);
-      return c;
-    }
-
-    function generateItemSprite(itemType) {
-      if (spriteCache.item.has(itemType)) return spriteCache.item.get(itemType);
-
-      const c = document.createElement('canvas');
-      c.width = 40; c.height = 40;
-      const s = c.getContext('2d');
-
-      if (itemType === 'hotPocket') {
-        s.fillStyle = '#ff6347'; s.fillRect(10, 10, 20, 20);
-        s.fillStyle = '#ff8c69'; s.fillRect(13, 13, 14, 14);
-      } else if (itemType === 'heatLamp') {
-        s.fillStyle = '#ffd700'; s.beginPath(); s.arc(20, 20, 10, 0, Math.PI * 2); s.fill();
-        s.fillStyle = '#ffed4e'; s.beginPath(); s.arc(20, 20, 6, 0, Math.PI * 2); s.fill();
-      } else if (itemType === 'thermalBlanket') {
-        s.fillStyle = '#ff1493'; s.fillRect(8, 8, 24, 24);
-        s.fillStyle = '#ff69b4'; s.fillRect(12, 12, 16, 16);
-      }
-
-      spriteCache.item.set(itemType, c);
-      return c;
-    }
-
-    function generateFogSprite(width, height) {
-      const key = `${width}x${height}`;
-      if (spriteCache.fogBySize.has(key)) return spriteCache.fogBySize.get(key);
-
-      const c = document.createElement('canvas');
-      c.width = width; c.height = height;
-      const s = c.getContext('2d');
-
-      const g = s.createLinearGradient(0, 0, 0, height);
-      g.addColorStop(0, 'rgba(255,255,255,0.65)');
-      g.addColorStop(1, 'rgba(255,255,255,0)');
-      s.fillStyle = g;
-      s.fillRect(0, 0, width, height);
-
-      spriteCache.fogBySize.set(key, c);
-      return c;
-    }
-
-    // =========================
-    // Procedural map generation
-    // =========================
-    function getChunkIndexByY(y) {
-      // chunk 0 is near floor, chunk increases upward
-      return Math.max(0, Math.floor((WORLD_FLOOR_Y - y) / CHUNK_HEIGHT));
-    }
-
-    function chunkTopY(index) {
-      return WORLD_FLOOR_Y - (index + 1) * CHUNK_HEIGHT;
-    }
-
-    function chunkBottomY(index) {
-      return WORLD_FLOOR_Y - index * CHUNK_HEIGHT;
-    }
-
-    function ensureChunk(index) {
-      if (chunks.has(index)) return;
-
-      const rand = mulberry32(chunkSeed(index));
-      const platforms = [];
-      const resources = [];
-      const stores = [];
-
-      const yTop = chunkTopY(index);
-      const yBottom = chunkBottomY(index);
-
-      const heightMeters = Math.max(0, Math.floor((WORLD_FLOOR_Y - yTop) * 0.8));
-      const biome = biomeFromHeightMeters(heightMeters);
-
-      // Generate climbing path with lateral drift for better scroll
-      let currentY = yBottom - 60;
-      let currentX = 300 + rand() * (WORLD_WIDTH - 600);
-
-      // base difficulty scaling
-      const difficulty = Math.min(1.2, 0.35 + index * 0.04);
-      const minW = Math.max(80, 180 - index * 3);
-      const maxW = Math.max(120, 280 - index * 2);
-
-      while (currentY > yTop + 60) {
-        const gapY = PLATFORM_MIN_GAP_Y + rand() * (PLATFORM_MAX_GAP_Y + index * 2);
-        currentY -= gapY;
-
-        const drift = (rand() - 0.5) * (260 + difficulty * 160);
-        currentX += drift;
-        currentX = Math.max(50, Math.min(WORLD_WIDTH - 280, currentX));
-
-        const width = minW + rand() * (maxW - minW);
-        const typeRoll = rand();
-        let type = 'snow';
-        if (biome.name === 'Ice Wall') type = typeRoll > 0.45 ? 'ice' : 'snow';
-        else if (biome.name === 'Storm Ridge' || biome.name === 'Death Zone') type = typeRoll > 0.55 ? 'rock' : 'ice';
-        else type = typeRoll > 0.75 ? 'rock' : 'snow';
-
-        const plat = { x: currentX, y: currentY, width, height: 26 + rand() * 10, type };
-        platforms.push(plat);
-
-        // resource spawn chance
-        if (rand() > 0.42) {
-          resources.push({
-            x: plat.x + 10 + rand() * Math.max(10, plat.width - 50),
-            y: plat.y - 44,
-            width: 40,
-            height: 40,
-            type: rand() > 0.52 ? 'tree' : 'rock',
-          });
-        }
-      }
-
-      // occasional store in chunk
-      if (index % 2 === 0 || rand() > 0.75) {
-        const shopPlatform = platforms[Math.max(0, Math.floor(rand() * platforms.length))];
-        if (shopPlatform) {
-          stores.push({
-            x: Math.min(WORLD_WIDTH - 64, shopPlatform.x + shopPlatform.width * 0.5 - 30),
-            y: shopPlatform.y - 64,
-            width: 60,
-            height: 60,
-          });
-        }
-      }
-
-      chunks.set(index, {
-        index, platforms, resources, stores,
-        biomeName: biome.name,
-      });
-    }
-
-    function maintainChunksAroundPlayer() {
-      const playerChunk = getChunkIndexByY(player.y);
-      const minChunk = Math.max(0, playerChunk - MAX_ACTIVE_CHUNKS_BELOW);
-      const maxChunk = playerChunk + MAX_ACTIVE_CHUNKS_ABOVE;
-
-      for (let i = minChunk; i <= maxChunk; i++) ensureChunk(i);
-
-      // cleanup far chunks to keep memory sane
-      for (const key of chunks.keys()) {
-        if (key < minChunk - 1 || key > maxChunk + 2) chunks.delete(key);
+        player.isJumping = true;
       }
     }
 
-    function getVisibleChunkRange() {
-      const topWorldY = camera.y - 120;
-      const bottomWorldY = camera.y + canvas.height + 120;
-      const topChunk = getChunkIndexByY(topWorldY);
-      const bottomChunk = getChunkIndexByY(bottomWorldY);
-      return [Math.min(topChunk, bottomChunk), Math.max(topChunk, bottomChunk)];
+    function respawnAtCheckpoint() {
+      player.x = checkpoint.x;
+      player.y = checkpoint.y;
+      player.vx = 0;
+      player.vy = 0;
+      player.isJumping = false;
+      player.temperature = 110;
+      player.oxygen = 85;
     }
 
-    // =========================
-    // Menus + items
-    // =========================
+    // ============== UI / menus ==============
     function openStore() {
       if (gameState.storeOpen) return;
       gameState.storeOpen = true;
-      const storeMenu = document.getElementById('storeMenu');
+
       const storeItems = document.getElementById('storeItems');
+      const storeMenu = document.getElementById('storeMenu');
       storeItems.innerHTML = '';
 
       const buyItems = [
-        { id: 'hotPocket', name: 'Hot Pocket', price: 50, type: 'hotPocket' },
-        { id: 'heatLamp', name: 'Heat Lamp', price: 100, type: 'heatLamp' },
-        { id: 'thermalBlanket', name: 'Thermal Blanket', price: 150, type: 'thermalBlanket' },
+        { id: 'hotPocket', name: 'Hot Pocket', price: 50 },
+        { id: 'heatLamp', name: 'Heat Lamp', price: 100 },
+        { id: 'thermalBlanket', name: 'Thermal Blanket', price: 150 },
       ];
 
       for (const item of buyItems) {
         const d = document.createElement('div');
         d.className = 'store-item';
-
-        const c = document.createElement('canvas');
-        c.width = 50; c.height = 50;
-        c.getContext('2d').drawImage(generateItemSprite(item.type), 0, 0, 50, 50);
-
         d.innerHTML = `
           <div class="item-info">
             <div class="item-name">🔥 ${item.name}</div>
             <div class="item-details">Price: $${item.price}</div>
           </div>
-          <div class="item-buttons">
-            <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
-          </div>
+          <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
         `;
-        d.insertBefore(c, d.firstChild);
         storeItems.appendChild(d);
       }
 
-      storeItems.innerHTML += `<hr style="margin: 14px 0; border-color:#555;">`;
+      storeItems.innerHTML += `<hr style="margin:12px 0;border-color:#555;">`;
 
-      const sellItems = [
+      const sell = [
         { id: 'wood', name: 'Wood', price: 20 },
         { id: 'stone', name: 'Stone', price: 30 },
       ];
 
-      for (const item of sellItems) {
+      for (const item of sell) {
         const d = document.createElement('div');
         d.className = 'store-item';
         d.innerHTML = `
@@ -646,107 +604,484 @@
             <div class="item-name">${item.name}</div>
             <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id]}</div>
           </div>
-          <div class="item-buttons">
-            <button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button>
-          </div>
+          <button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button>
         `;
         storeItems.appendChild(d);
       }
 
       storeMenu.style.display = 'block';
     }
-
-    function closeStore() {
-      gameState.storeOpen = false;
-      document.getElementById('storeMenu').style.display = 'none';
-    }
-
-    function buyItem(itemId, price) {
-      if (inventory.money >= price) {
-        inventory.money -= price;
-        inventory[itemId]++;
-        updateUI();
-        openStore(); // refresh
-      } else {
-        alert('Not enough money!');
-      }
-    }
-
-    function sellItem(itemId, price) {
-      if (inventory[itemId] > 0) {
-        inventory[itemId]--;
-        inventory.money += price;
-        updateUI();
-        openStore();
-      }
-    }
+    function closeStore() { gameState.storeOpen = false; document.getElementById('storeMenu').style.display = 'none'; }
 
     function openItemMenu() {
       gameState.itemMenuOpen = true;
-      const itemMenu = document.getElementById('itemMenu');
       const itemOptions = document.getElementById('itemOptions');
       itemOptions.innerHTML = '';
 
       for (const key of Object.keys(heatItems)) {
         if (inventory[key] <= 0) continue;
-
         const item = heatItems[key];
         const d = document.createElement('div');
         d.className = 'item-option';
-
-        const c = document.createElement('canvas');
-        c.width = 50; c.height = 50;
-        c.getContext('2d').drawImage(generateItemSprite(key), 0, 0, 50, 50);
-
         d.innerHTML = `
           <div class="item-info">
             <div class="item-name">🔥 ${item.name}</div>
             <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[key]}</div>
           </div>
-          <div class="item-buttons">
-            <button class="item-btn" onclick="useItem('${key}')">Use</button>
-          </div>
+          <button class="item-btn" onclick="useItem('${key}')">Use</button>
         `;
-        d.insertBefore(c, d.firstChild);
         itemOptions.appendChild(d);
       }
 
-      if (!itemOptions.children.length) {
-        itemOptions.innerHTML = `<p style="color:#aaa;">No heat items available</p>`;
-      }
-
-      itemMenu.style.display = 'block';
+      if (!itemOptions.children.length) itemOptions.innerHTML = `<p style="color:#aaa">No heat items available</p>`;
+      document.getElementById('itemMenu').style.display = 'block';
     }
+    function closeItemMenu() { gameState.itemMenuOpen = false; document.getElementById('itemMenu').style.display = 'none'; }
 
-    function closeItemMenu() {
-      gameState.itemMenuOpen = false;
-      document.getElementById('itemMenu').style.display = 'none';
+    function buyItem(id, price) {
+      if (inventory.money < price) return alert('Not enough money!');
+      inventory.money -= price;
+      inventory[id]++;
+      updateUI();
+      openStore();
     }
-
+    function sellItem(id, price) {
+      if (inventory[id] <= 0) return;
+      inventory[id]--;
+      inventory.money += price;
+      updateUI();
+      openStore();
+    }
     function useItem(key) {
       if (inventory[key] <= 0) return;
       inventory[key]--;
-
       const item = heatItems[key];
-      activeHeatItems.push({
-        type: key,
-        duration: item.duration,
-        startTime: performance.now() / 1000,
-      });
-
+      activeHeatItems.push({ type: key, duration: item.duration, start: performance.now()/1000 });
       player.temperature = Math.min(player.maxTemperature, player.temperature + 40);
       updateUI();
       closeItemMenu();
     }
 
-    // =========================
-    // Input binding
-    // =========================
-    function bindHoldButton(id, controlKey) {
-      const el = document.getElementById(id);
-      const on = (e) => { if (e) e.preventDefault(); touchControls[controlKey] = true; };
-      const off = (e) => { if (e) e.preventDefault(); touchControls[controlKey] = false; };
+    function setTool(tool) {
+      player.currentTool = tool;
+      document.getElementById('toolBtn').textContent = tool === 'axe' ? '🔨 TOOL (1/2)' : '⛏️ TOOL (2/2)';
+      updateUI();
+    }
 
+    function updateUI() {
+      const h = getHeightMeters();
+      document.getElementById('heightValue').textContent = h;
+      document.getElementById('zoneValue').textContent = zoneNameByAlt(h);
+
+      document.getElementById('money').textContent = inventory.money;
+      document.getElementById('tempValue').textContent = Math.floor(player.temperature);
+      document.getElementById('oxygenValue').textContent = Math.floor(player.oxygen);
+
+      document.getElementById('woodCount').textContent = inventory.wood;
+      document.getElementById('stoneCount').textContent = inventory.stone;
+      document.getElementById('hotPocketCount').textContent = inventory.hotPocket;
+      document.getElementById('heatLampCount').textContent = inventory.heatLamp;
+      document.getElementById('thermalBlanketCount').textContent = inventory.thermalBlanket;
+
+      document.getElementById('toolDisplay').textContent = player.currentTool === 'axe' ? 'Axe' : 'Pickaxe';
+      document.getElementById('nearShopHint').textContent = isNearShop() ? 'YES' : 'No';
+
+      const campReached = camps.some(c => c.reached);
+      document.getElementById('campHint').textContent = campReached ? 'Yes' : 'No';
+
+      document.getElementById('temperatureBar').style.width = clamp(((player.temperature - 32) / 180) * 100, 0, 100) + '%';
+      document.getElementById('oxygenBar').style.width = clamp(player.oxygen, 0, 100) + '%';
+
+      const now = performance.now()/1000;
+      const activeDiv = document.getElementById('activeHeatItems');
+      activeDiv.innerHTML = '';
+      for (const it of activeHeatItems) {
+        const rem = Math.ceil(it.duration - (now - it.start));
+        if (rem > 0) {
+          const d = document.createElement('div');
+          d.className = 'heat-item-timer';
+          d.textContent = `${heatItems[it.type].name}: ${rem}s`;
+          activeDiv.appendChild(d);
+        }
+      }
+    }
+
+    // ============== Input ==============
+    document.addEventListener('keydown', (e) => {
+      keys[e.key] = true;
+      if (e.key === '1') setTool('axe');
+      if (e.key === '2') setTool('pickaxe');
+      if (e.key === 'e' || e.key === 'E') openItemMenu();
+      if (e.key === 'Escape') {
+        if (gameState.storeOpen) closeStore();
+        if (gameState.itemMenuOpen) closeItemMenu();
+      }
+    });
+    document.addEventListener('keyup', (e) => {
+      keys[e.key] = false;
+      if (e.key === 'ArrowDown') actionDown = false;
+    });
+
+    function bindHoldButton(id, key) {
+      const el = document.getElementById(id);
+      const on = (e)=>{ e.preventDefault(); touchControls[key]=true; };
+      const off = (e)=>{ e.preventDefault(); touchControls[key]=false; };
+      el.addEventListener('touchstart', on, {passive:false});
+      el.addEventListener('touchend', off, {passive:false});
+      el.addEventListener('touchcancel', off, {passive:false});
+      el.addEventListener('mousedown', on);
+      el.addEventListener('mouseup', off);
+      el.addEventListener('mouseleave', off);
+    }
+    bindHoldButton('leftBtn', 'left');
+    bindHoldButton('rightBtn', 'right');
+    bindHoldButton('jumpBtn', 'jump');
+
+    document.getElementById('downBtn').addEventListener('click', tryOpenShop);
+    document.getElementById('mineBtn').addEventListener('click', tryMineOrChop);
+    document.getElementById('useBtn').addEventListener('click', openItemMenu);
+    document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
+
+    canvas.addEventListener('click', () => {
+      if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
+    });
+
+    // ============== Drawing ==============
+    function drawTerrain() {
+      const altitude = getHeightMeters();
+      const coldFactor = clamp((altitude - 1200) / 3800, 0, 1);
+
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, `rgba(${Math.floor(150 - 40 * coldFactor)}, ${Math.floor(195 - 30 * coldFactor)}, ${Math.floor(235 - 10 * coldFactor)}, 1)`);
+      sky.addColorStop(1, `rgba(${Math.floor(220 - 30 * coldFactor)}, ${Math.floor(238 - 20 * coldFactor)}, 255, 1)`);
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // far parallax peaks
+      ctx.save();
+      ctx.globalAlpha = 0.26;
+      ctx.fillStyle = '#9fb5c8';
+      const par = camera.x * 0.22;
+      for (let i = -2; i < 10; i++) {
+        const bx = i * 260 - (par % 260);
+        ctx.beginPath();
+        ctx.moveTo(bx, canvas.height);
+        ctx.lineTo(bx + 130, canvas.height - 220 - (i % 2) * 45);
+        ctx.lineTo(bx + 260, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // mountain
+      ctx.beginPath();
+      const first = terrainPoints[0];
+      ctx.moveTo(first.x - camera.x, canvas.height + 200);
+      for (const p of terrainPoints) ctx.lineTo(p.x - camera.x, p.y - camera.y);
+      const last = terrainPoints[terrainPoints.length - 1];
+      ctx.lineTo(last.x - camera.x, canvas.height + 200);
+      ctx.closePath();
+
+      const mGrad = ctx.createLinearGradient(0, -camera.y, 0, WORLD_HEIGHT - camera.y);
+      mGrad.addColorStop(0.00, '#f6fbff');
+      mGrad.addColorStop(0.20, '#edf5fc');
+      mGrad.addColorStop(0.42, '#d4e0ea');
+      mGrad.addColorStop(0.72, '#9ba8b3');
+      mGrad.addColorStop(1.00, '#6f7d88');
+      ctx.fillStyle = mGrad;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(first.x - camera.x, first.y - camera.y);
+      for (const p of terrainPoints) ctx.lineTo(p.x - camera.x, p.y - camera.y);
+      ctx.strokeStyle = '#d9e5ef';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // summit snow overlay
+      ctx.save();
+      ctx.beginPath();
+      let started = false;
+      for (const p of terrainPoints) {
+        const worldAlt = WORLD_HEIGHT - p.y;
+        if (worldAlt > 3000) {
+          const sx = p.x - camera.x;
+          const sy = p.y - camera.y;
+          if (!started) { ctx.moveTo(sx, sy); started = true; }
+          else ctx.lineTo(sx, sy);
+        }
+      }
+      if (started) {
+        ctx.lineTo(WORLD_WIDTH - camera.x, -camera.y);
+        ctx.lineTo(0 - camera.x, -camera.y);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawTrees() {
+      for (const t of trees) {
+        if (t.chopped) continue;
+        const sx = t.x - camera.x;
+        const sy = t.yBottom - t.height - camera.y;
+        if (sx < -100 || sx > canvas.width + 100) continue;
+
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(sx + t.width * 0.38, sy + t.height * 0.45, t.width * 0.24, t.height * 0.55);
+        ctx.fillStyle = '#2e8b57';
+        ctx.beginPath();
+        ctx.arc(sx + t.width * 0.5, sy + t.height * 0.35, t.width * 0.45, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawRocks() {
+      for (const r of rocks) {
+        if (r.mined) continue;
+        const sx = r.x - camera.x;
+        const sy = r.yBottom - r.height - camera.y;
+        if (sx < -100 || sx > canvas.width + 100) continue;
+
+        ctx.fillStyle = '#7f8a93';
+        ctx.beginPath();
+        ctx.ellipse(sx + r.width * 0.5, sy + r.height * 0.6, r.width * 0.5, r.height * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#5f6a74';
+        ctx.fillRect(sx + r.width * 0.25, sy + r.height * 0.45, r.width * 0.4, r.height * 0.25);
+      }
+    }
+
+    function drawShopsAndCamps() {
+      for (const s of shops) {
+        const sx = s.x - camera.x;
+        const sy = s.yBottom - s.height - camera.y;
+        if (sx < -120 || sx > canvas.width + 120) continue;
+
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(sx, sy, s.width, s.height);
+        ctx.fillStyle = '#d2691e';
+        ctx.fillRect(sx + 4, sy + 4, s.width - 8, s.height - 8);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('🛍️', sx + s.width * 0.5, sy + 38);
+      }
+
+      for (const c of camps) {
+        const sx = c.x - camera.x;
+        const sy = c.yBottom - c.height - camera.y;
+        if (sx < -120 || sx > canvas.width + 120) continue;
+
+        ctx.fillStyle = c.reached ? '#4caf50' : '#795548';
+        ctx.fillRect(sx, sy, c.width, c.height);
+        ctx.fillStyle = '#e0c28c';
+        ctx.beginPath();
+        ctx.moveTo(sx - 5, sy);
+        ctx.lineTo(sx + c.width + 5, sy);
+        ctx.lineTo(sx + c.width / 2, sy - 20);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Arial';
+        ctx.fillText('⛺', sx + c.width * 0.5, sy + 24);
+      }
+    }
+
+    function drawAvalanches() {
+      for (const a of avalanches) {
+        const sx = a.x - camera.x;
+        const sy = a.y - camera.y;
+        ctx.beginPath();
+        ctx.arc(sx, sy, a.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(240,248,255,0.9)';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(sx + a.radius * 0.25, sy - a.radius * 0.2, a.radius * 0.45, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(220,235,248,0.85)';
+        ctx.fill();
+      }
+    }
+
+    function drawPlayer() {
+      const sx = player.x - camera.x;
+      const sy = player.y - camera.y;
+
+      let color = '#ffff00';
+      if (player.temperature < 50) color = '#0066ff';
+      else if (player.temperature > 180) color = '#ff3300';
+
+      ctx.fillStyle = color;
+      ctx.fillRect(sx + 10, sy + 5, 10, 10);
+      ctx.fillRect(sx + 10, sy + 15, 10, 15);
+      ctx.fillRect(sx + 5, sy + 18, 20, 5);
+      ctx.fillRect(sx + 10, sy + 30, 5, 15);
+      ctx.fillRect(sx + 15, sy + 30, 5, 15);
+    }
+
+    function drawWeatherOverlays(dt) {
+      const alt = getHeightMeters();
+      const windStrength = clamp((alt - 2200) / 3500, 0, 1);
+
+      // wind streaks
+      if (windStrength > 0) {
+        ctx.save();
+        ctx.globalAlpha = 0.08 + windStrength * 0.12;
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 28; i++) {
+          const y = (i * 29 + performance.now() * 0.04) % (canvas.height + 40) - 20;
+          const x = (i * 67 + performance.now() * 0.12) % (canvas.width + 120) - 60;
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + 40 + windStrength * 70, y + 3);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // fog / blizzard veil in high alt
+      if (alt > 4200) {
+        const fogAlpha = clamp((alt - 4200) / 2200, 0.08, 0.28);
+        const fog = ctx.createLinearGradient(0,0,0,canvas.height * 0.5);
+        fog.addColorStop(0, `rgba(255,255,255,${fogAlpha})`);
+        fog.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = fog;
+        ctx.fillRect(0,0,canvas.width,canvas.height * 0.6);
+      }
+    }
+
+    // ============== Update/Render loop ==============
+    function update(dt, nowSec) {
+      pollGamepad();
+
+      if (gamepadState.toolPressed) setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
+      if (gamepadState.usePressed) {
+        if (gameState.itemMenuOpen) closeItemMenu();
+        else openItemMenu();
+      }
+      if (gamepadState.minePressed && !gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
+      if (gamepadState.downPressed && !gameState.storeOpen && !gameState.itemMenuOpen) tryOpenShop();
+
+      if (!gameState.storeOpen && !gameState.itemMenuOpen) {
+        if (keys['ArrowLeft'] || keys['a'] || keys['A'] || touchControls.left || gamepadState.left) player.targetVx = -PLAYER_SPEED;
+        if (keys['ArrowRight'] || keys['d'] || keys['D'] || touchControls.right || gamepadState.right) player.targetVx = PLAYER_SPEED;
+
+        const jumpPressed = (keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' '] || touchControls.jump || gamepadState.jumpPressed);
+        if (jumpPressed && !player.isJumping) {
+          player.vy = JUMP_POWER;
+          player.isJumping = true;
+          touchControls.jump = false;
+        }
+
+        const downPressed = !!keys['ArrowDown'];
+        if (downPressed && !actionDown) tryOpenShop();
+        actionDown = downPressed;
+
+        if (keys['f'] || keys['F']) tryMineOrChop();
+      }
+
+      player.vx += (player.targetVx - player.vx) * Math.min(1, dt * 10);
+      player.targetVx = 0;
+      player.vy += GRAVITY * (dt * 60);
+
+      player.x += player.vx * (dt * 60);
+      player.y += player.vy * (dt * 60);
+
+      player.x = clamp(player.x, 0, WORLD_WIDTH - player.width);
+      player.y = clamp(player.y, 0, WORLD_HEIGHT - player.height);
+
+      terrainCollisionAndSlip(dt);
+
+      // temperature
+      player.temperature -= BASE_TEMP_DECAY_PER_SEC * dt;
+
+      const now = nowSec;
+      activeHeatItems = activeHeatItems.filter(it => {
+        const elapsed = now - it.start;
+        if (elapsed < it.duration) {
+          player.temperature += 0.15 * (dt * 60);
+          return true;
+        }
+        return false;
+      });
+
+      // oxygen by altitude
+      const alt = getHeightMeters();
+      if (alt > OXYGEN_START_ALT) {
+        const t = clamp((alt - OXYGEN_START_ALT) / 3800, 0, 1);
+        player.oxygen -= (1 + t * (OXYGEN_DRAIN_MAX - 1)) * dt;
+      } else {
+        player.oxygen += OXYGEN_RECOVER * dt;
+      }
+      player.oxygen = clamp(player.oxygen, 0, 100);
+
+      // oxygen hurts temp when very low
+      if (player.oxygen < 18) {
+        player.temperature -= (18 - player.oxygen) * 0.02 * (dt * 60);
+      }
+
+      player.temperature = clamp(player.temperature, 32, player.maxTemperature);
+
+      checkCampReached();
+      spawnAvalanche(dt, nowSec);
+      updateAvalanches(dt);
+
+      // win near summit
+      if (!gameState.won && player.x > WORLD_WIDTH - 240) {
+        gameState.won = true;
+        alert('🏁 You reached the summit! Congratulations!');
+      }
+
+      // fail conditions
+      if (!gameState.gameOver && (player.temperature <= 32 || player.oxygen <= 0)) {
+        gameState.gameOver = true;
+        alert('You collapsed! Respawning at last camp...');
+        respawnAtCheckpoint();
+        gameState.gameOver = false;
+      }
+
+      // camera
+      const targetCamX = player.x - canvas.width * 0.45;
+      const targetCamY = player.y - canvas.height * 0.55;
+      camera.x += (targetCamX - camera.x) * Math.min(1, dt * 6);
+      camera.y += (targetCamY - camera.y) * Math.min(1, dt * 6);
+      camera.x = clamp(camera.x, 0, WORLD_WIDTH - canvas.width);
+      camera.y = clamp(camera.y, 0, WORLD_HEIGHT - canvas.height);
+
+      updateUI();
+    }
+
+    function render(dt) {
+      drawTerrain();
+      drawTrees();
+      drawRocks();
+      drawShopsAndCamps();
+      drawAvalanches();
+      drawPlayer();
+      drawWeatherOverlays(dt);
+    }
+
+    function loop(nowMs) {
+      const dt = Math.min(0.05, (nowMs - lastTime) / 1000 || 0.016);
+      lastTime = nowMs;
+      const nowSec = nowMs / 1000;
+
+      update(dt, nowSec);
+      render(dt);
+
+      requestAnimationFrame(loop);
+    }
+
+    // ============== Boot ==============
+    function bindHoldButton(id, key) {
+      const el = document.getElementById(id);
+      const on = (e)=>{ e.preventDefault(); touchControls[key] = true; };
+      const off = (e)=>{ e.preventDefault(); touchControls[key] = false; };
       el.addEventListener('touchstart', on, { passive: false });
       el.addEventListener('touchend', off, { passive: false });
       el.addEventListener('touchcancel', off, { passive: false });
@@ -759,362 +1094,26 @@
     bindHoldButton('rightBtn', 'right');
     bindHoldButton('jumpBtn', 'jump');
 
-    document.getElementById('useBtn').addEventListener('click', () => openItemMenu());
-    document.getElementById('useBtn').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      openItemMenu();
-    }, { passive: false });
+    document.getElementById('downBtn').addEventListener('click', tryOpenShop);
+    document.getElementById('mineBtn').addEventListener('click', tryMineOrChop);
+    document.getElementById('useBtn').addEventListener('click', openItemMenu);
+    document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
 
-    function setTool(tool) {
-      player.currentTool = tool;
-      document.getElementById('toolBtn').textContent = tool === 'axe' ? '🔨 TOOL (1/2)' : '⛏️ TOOL (2/2)';
-      updateUI();
-    }
-
-    document.getElementById('toolBtn').addEventListener('click', () => {
-      setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
-    });
-    document.getElementById('toolBtn').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
-    }, { passive: false });
-
-    document.addEventListener('keydown', (e) => {
-      keys[e.key] = true;
-      if (e.key === '1') setTool('axe');
-      if (e.key === '2') setTool('pickaxe');
-      if (e.key === 'e' || e.key === 'E') openItemMenu();
-      if (e.key === 'Escape') {
-        if (gameState.storeOpen) closeStore();
-        if (gameState.itemMenuOpen) closeItemMenu();
-      }
+    canvas.addEventListener('click', () => {
+      if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
     });
 
-    document.addEventListener('keyup', (e) => {
-      keys[e.key] = false;
-      if (e.key === 'e' || e.key === 'E') interactionPressed = false;
-    });
-
-    // mining clicks (world transform using camera x/y)
-    canvas.addEventListener('click', (e) => {
-      if (gameState.storeOpen || gameState.itemMenuOpen) return;
-      const worldX = e.clientX + camera.x;
-      const worldY = e.clientY + camera.y;
-      checkResourceClick(worldX, worldY);
-    });
-
-    canvas.addEventListener('touchend', (e) => {
-      if (gameState.storeOpen || gameState.itemMenuOpen) return;
-      const t = e.changedTouches[0];
-      if (!t) return;
-      checkResourceClick(t.clientX + camera.x, t.clientY + camera.y);
-    });
-
-    // =========================
-    // Gameplay helpers
-    // =========================
-    function getHeightMeters() {
-      return Math.max(0, Math.floor((WORLD_FLOOR_Y - player.y) * 0.8));
-    }
-
-    function currentBiomeName() {
-      return biomeFromHeightMeters(getHeightMeters()).name;
-    }
-
-    function checkResourceClick(worldX, worldY) {
-      // check visible chunks only for speed
-      const [cMin, cMax] = getVisibleChunkRange();
-      for (let ci = cMin; ci <= cMax; ci++) {
-        const chunk = chunks.get(ci);
-        if (!chunk) continue;
-
-        for (let i = chunk.resources.length - 1; i >= 0; i--) {
-          const r = chunk.resources[i];
-          if (
-            worldX > r.x && worldX < r.x + r.width &&
-            worldY > r.y && worldY < r.y + r.height
-          ) {
-            if (player.currentTool === 'axe' && r.type === 'tree') {
-              inventory.wood++;
-              chunk.resources.splice(i, 1);
-              updateUI();
-              return;
-            }
-            if (player.currentTool === 'pickaxe' && r.type === 'rock') {
-              inventory.stone++;
-              chunk.resources.splice(i, 1);
-              updateUI();
-              return;
-            }
-          }
-        }
-      }
-    }
-
-    function playerPlatformCollision(dt) {
-      const [cMin, cMax] = getVisibleChunkRange();
-
-      for (let ci = cMin; ci <= cMax; ci++) {
-        const chunk = chunks.get(ci);
-        if (!chunk) continue;
-
-        for (const p of chunk.platforms) {
-          if (
-            player.velocityY >= 0 &&
-            player.y + player.height >= p.y &&
-            player.y + player.height <= p.y + p.height + Math.max(10, player.velocityY + 2) &&
-            player.x + player.width > p.x &&
-            player.x < p.x + p.width
-          ) {
-            player.y = p.y - player.height;
-            player.velocityY = 0;
-            player.isJumping = false;
-          }
-        }
-      }
-    }
-
-    function nearStoreAndInteract() {
-      const [cMin, cMax] = getVisibleChunkRange();
-      for (let ci = cMin; ci <= cMax; ci++) {
-        const chunk = chunks.get(ci);
-        if (!chunk) continue;
-        for (const s of chunk.stores) {
-          const dist = Math.hypot(
-            (player.x + player.width * 0.5) - (s.x + s.width * 0.5),
-            (player.y + player.height * 0.5) - (s.y + s.height * 0.5)
-          );
-          if (dist < 110) {
-            openStore();
-            return true;
-          }
-        }
-      }
-      return false;
-    }
-
-    // =========================
-    // Update / Render
-    // =========================
-    function updateUI() {
-      document.getElementById('heightValue').textContent = getHeightMeters();
-      document.getElementById('biomeValue').textContent = currentBiomeName();
-      document.getElementById('money').textContent = inventory.money;
-      document.getElementById('tempValue').textContent = Math.floor(player.temperature);
-      document.getElementById('woodCount').textContent = inventory.wood;
-      document.getElementById('stoneCount').textContent = inventory.stone;
-      document.getElementById('hotPocketCount').textContent = inventory.hotPocket;
-      document.getElementById('heatLampCount').textContent = inventory.heatLamp;
-      document.getElementById('thermalBlanketCount').textContent = inventory.thermalBlanket;
-      document.getElementById('toolDisplay').textContent = player.currentTool === 'axe' ? 'Axe' : 'Pickaxe';
-
-      const pct = ((player.temperature - 32) / 180) * 100;
-      document.getElementById('temperatureBar').style.width = Math.max(0, Math.min(100, pct)) + '%';
-
-      const active = document.getElementById('activeHeatItems');
-      active.innerHTML = '';
-      const now = performance.now() / 1000;
-      for (const item of activeHeatItems) {
-        const remain = Math.ceil(item.duration - (now - item.startTime));
-        if (remain > 0) {
-          const d = document.createElement('div');
-          d.className = 'heat-item-timer';
-          d.textContent = `${heatItems[item.type].name}: ${remain}s`;
-          active.appendChild(d);
-        }
-      }
-    }
-
-    function updatePlayer(dt) {
-      pollGamepad();
-      maintainChunksAroundPlayer();
-
-      if (gamepadState.usePressed) {
-        if (gameState.itemMenuOpen) closeItemMenu();
-        else openItemMenu();
-      }
-      if (gamepadState.toolPressed) {
-        setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
-      }
-      if (gamepadState.menuPressed) {
-        if (gameState.storeOpen) closeStore();
-        else if (gameState.itemMenuOpen) closeItemMenu();
-        else openItemMenu();
-      }
-
-      if (gameState.storeOpen || gameState.itemMenuOpen) {
-        player.velocityXTarget = 0;
-      } else {
-        if (keys['ArrowLeft'] || keys['a'] || keys['A'] || touchControls.left || gamepadState.left) player.velocityXTarget = -5;
-        if (keys['ArrowRight'] || keys['d'] || keys['D'] || touchControls.right || gamepadState.right) player.velocityXTarget = 5;
-
-        const jumpInput = keys[' '] || keys['w'] || keys['W'] || touchControls.jump || gamepadState.jumpPressed;
-        if (jumpInput && !player.isJumping) {
-          player.velocityY = -12;
-          player.isJumping = true;
-          touchControls.jump = false;
-        }
-      }
-
-      player.velocityX += (player.velocityXTarget - player.velocityX) * Math.min(1, dt * 10);
-      player.velocityXTarget = 0;
-      player.velocityY += 0.5 * (dt * 60);
-
-      player.x += player.velocityX * (dt * 60);
-      player.y += player.velocityY * (dt * 60);
-
-      // World bounds
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > WORLD_WIDTH) player.x = WORLD_WIDTH - player.width;
-      if (player.y + player.height > WORLD_FLOOR_Y) {
-        player.y = WORLD_FLOOR_Y - player.height;
-        player.velocityY = 0;
-        player.isJumping = false;
-      }
-
-      playerPlatformCollision(dt);
-
-      const interactDown = !!(keys['e'] || keys['E']);
-      if (interactDown && !interactionPressed && !gameState.storeOpen && !gameState.itemMenuOpen) {
-        nearStoreAndInteract();
-      }
-      interactionPressed = interactDown;
-
-      // Temperature
-      player.temperature -= BASE_TEMP_DECAY_PER_SEC * dt;
-
-      const now = performance.now() / 1000;
-      activeHeatItems = activeHeatItems.filter((item) => {
-        const elapsed = now - item.startTime;
-        if (elapsed < item.duration) {
-          player.temperature += 0.15 * (dt * 60);
-          return true;
-        }
-        return false;
-      });
-
-      player.temperature = Math.max(32, Math.min(player.maxTemperature, player.temperature));
-      if (!gameState.gameOver && player.temperature <= 32) {
-        gameState.gameOver = true;
-        alert('You froze! Game Over!');
-        location.reload();
-        return;
-      }
-
-      // Smooth camera follow (X + Y scrolling)
-      const targetCamX = player.x - canvas.width * 0.5 + player.width * 0.5;
-      const targetCamY = player.y - canvas.height * 0.38;
-
-      camera.x += (targetCamX - camera.x) * Math.min(1, dt * 6);
-      camera.y += (targetCamY - camera.y) * Math.min(1, dt * 6);
-
-      // clamp camera
-      camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, camera.x));
-      camera.y = Math.max(0, camera.y); // allows endless up
-    }
-
-    function drawBackground() {
-      const biome = biomeFromHeightMeters(getHeightMeters());
-      ctx.fillStyle = biome.sky;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // far mountain parallax
-      ctx.save();
-      ctx.globalAlpha = 0.25;
-      ctx.fillStyle = '#8da9c4';
-      const parallaxX = camera.x * 0.25;
-      for (let i = -2; i < 8; i++) {
-        const baseX = i * 280 - (parallaxX % 280);
-        ctx.beginPath();
-        ctx.moveTo(baseX, canvas.height);
-        ctx.lineTo(baseX + 140, canvas.height - 220);
-        ctx.lineTo(baseX + 280, canvas.height);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
-    function render() {
-      drawBackground();
-
-      // Floor
-      const floorScreenY = WORLD_FLOOR_Y - camera.y;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(-camera.x, floorScreenY, WORLD_WIDTH, 220);
-      ctx.strokeStyle = '#cfd9e2';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(-camera.x, floorScreenY, WORLD_WIDTH, 220);
-
-      const [cMin, cMax] = getVisibleChunkRange();
-      for (let ci = cMin; ci <= cMax; ci++) {
-        const chunk = chunks.get(ci);
-        if (!chunk) continue;
-
-        for (const p of chunk.platforms) {
-          const sx = p.x - camera.x;
-          const sy = p.y - camera.y;
-          if (sy > -120 && sy < canvas.height + 120 && sx > -300 && sx < canvas.width + 300) {
-            ctx.drawImage(generatePlatformSprite(p.width, p.height, p.type), sx, sy);
-          }
-        }
-
-        for (const r of chunk.resources) {
-          const sx = r.x - camera.x;
-          const sy = r.y - camera.y;
-          if (sy > -100 && sy < canvas.height + 100 && sx > -100 && sx < canvas.width + 100) {
-            ctx.drawImage(generateResourceSprite(r.type), sx, sy);
-          }
-        }
-
-        for (const s of chunk.stores) {
-          const sx = s.x - camera.x;
-          const sy = s.y - camera.y;
-          if (sy > -120 && sy < canvas.height + 120 && sx > -120 && sx < canvas.width + 120) {
-            ctx.fillStyle = '#8b4513';
-            ctx.fillRect(sx, sy, s.width, s.height);
-            ctx.fillStyle = '#d2691e';
-            ctx.font = '20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('🛍️', sx + s.width * 0.5, sy + 36);
-          }
-        }
-      }
-
-      const px = player.x - camera.x;
-      const py = player.y - camera.y;
-      ctx.drawImage(generatePlayerSprite(player.temperature), px, py);
-
-      // top fog
-      ctx.drawImage(generateFogSprite(canvas.width, Math.floor(canvas.height / 3)), 0, 0);
-    }
-
-    function gameLoop(now) {
-      const dt = Math.min(0.05, (now - lastTime) / 1000 || 0.016);
-      lastTime = now;
-
-      updatePlayer(dt);
-      updateUI();
-      render();
-
-      if (!gameState.gameOver) requestAnimationFrame(gameLoop);
-    }
-
-    // =========================
-    // Start
-    // =========================
     document.getElementById('startBtn').addEventListener('click', () => {
-      if (gameLoopStarted) return;
-      gameLoopStarted = true;
+      if (started) return;
+      started = true;
 
       const musicUrl = document.getElementById('musicUrl').value.trim();
       gameState.musicUrl = musicUrl;
-
       if (musicUrl) {
         gameState.music = new Audio(musicUrl);
         gameState.music.loop = true;
         gameState.music.volume = 0.3;
-        gameState.music.play().catch((e) => console.log('Audio play failed:', e));
+        gameState.music.play().catch(()=>{});
       }
 
       document.getElementById('menu').style.display = 'none';
@@ -1122,19 +1121,20 @@
       gameState.menu = false;
 
       resizeCanvas();
-      maintainChunksAroundPlayer();
+      generateWorld();
       updateUI();
-      requestAnimationFrame(gameLoop);
+      requestAnimationFrame(loop);
     });
 
-    // expose menu funcs for inline buttons
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // expose inline handlers
     window.closeStore = closeStore;
     window.closeItemMenu = closeItemMenu;
     window.buyItem = buyItem;
     window.sellItem = sellItem;
     window.useItem = useItem;
-
-    resizeCanvas();
   </script>
 </body>
   </html>
