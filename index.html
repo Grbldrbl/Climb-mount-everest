@@ -45,6 +45,7 @@
     #ui {
       position: absolute; top: 10px; left: 10px; color: white; font-size: 16px;
       background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; z-index: 100;
+      min-width: 260px;
     }
 
     #temperature {
@@ -109,11 +110,13 @@
 
     .control-btn:active { background: rgba(100, 150, 255, 1); transform: scale(0.95); }
 
-    .active-heat-items { display: flex; gap: 10px; margin-top: 10px; }
+    .active-heat-items { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
     .heat-item-timer {
       background: rgba(255,100,100,0.5); padding: 8px 12px; border-radius: 3px; font-size: 12px;
       border: 1px solid rgba(255,100,100,0.8);
     }
+
+    #controllerStatus { margin-top: 8px; font-size: 12px; color: #9ee5ff; }
 
     @media (max-width: 768px) {
       #musicUrl { width: 90vw; }
@@ -142,6 +145,7 @@
       <div>Temperature: <span id="tempValue">122</span>°F</div>
       <div id="temperature"><div id="temperatureBar" style="width: 100%;"></div></div>
       <div>Tool: <span id="toolDisplay">Axe</span></div>
+      <div id="controllerStatus">Controller: Not connected</div>
       <div class="active-heat-items" id="activeHeatItems"></div>
     </div>
 
@@ -187,7 +191,6 @@
 
     const inventory = { wood: 0, stone: 0, hotPocket: 0, heatLamp: 0, thermalBlanket: 0, money: 100 };
 
-    // durations in seconds
     const heatItems = {
       hotPocket: { duration: 30, name: 'Hot Pocket', price: 50 },
       heatLamp: { duration: 60, name: 'Heat Lamp', price: 100 },
@@ -205,21 +208,33 @@
     let interactionPressed = false;
     let gameLoopStarted = false;
 
+    // ---------- GAMEPAD STATE ----------
+    const gamepadState = {
+      index: null,
+      connected: false,
+      name: '',
+      buttonsPrev: [],
+      left: false,
+      right: false,
+      jumpPressed: false,
+      usePressed: false,
+      toolPressed: false,
+      menuPressed: false,
+    };
+    const GAMEPAD_DEADZONE = 0.25;
+
     const LEVEL_HEIGHT = 2000;
     const AREA_COUNT = 4;
     const WORLD_FLOOR_Y = 7000;
     const FREEZE_SECONDS = 240;
-    const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS; // 0.375°F/sec
+    const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
 
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
     const spriteCache = {
-      platform: new Map(),
-      resource: new Map(),
-      item: new Map(),
-      playerByBand: new Map(),
-      fogBySize: new Map()
+      platform: new Map(), resource: new Map(), item: new Map(),
+      playerByBand: new Map(), fogBySize: new Map()
     };
 
     function resizeCanvas() {
@@ -232,129 +247,191 @@
 
     const ground = { y: WORLD_FLOOR_Y, height: 240, width: window.innerWidth };
 
+    function setControllerStatus(msg) {
+      document.getElementById('controllerStatus').textContent = `Controller: ${msg}`;
+    }
+
+    function isSwitchLike(name = '') {
+      const n = name.toLowerCase();
+      return n.includes('nintendo') || n.includes('switch') || n.includes('pro controller') || n.includes('joy-con');
+    }
+
+    function onGamepadConnected(e) {
+      const gp = e.gamepad;
+      if (gamepadState.index === null) gamepadState.index = gp.index;
+      gamepadState.connected = true;
+      gamepadState.name = gp.id || 'Unknown';
+      gamepadState.buttonsPrev = new Array(gp.buttons.length).fill(false);
+      setControllerStatus(`Connected (${gamepadState.name})`);
+      console.log('Gamepad connected:', gp.id, 'index:', gp.index, 'mapping:', gp.mapping);
+    }
+
+    function onGamepadDisconnected(e) {
+      if (gamepadState.index === e.gamepad.index) {
+        gamepadState.index = null;
+        gamepadState.connected = false;
+        gamepadState.name = '';
+        gamepadState.buttonsPrev = [];
+        setControllerStatus('Not connected');
+      }
+    }
+
+    window.addEventListener('gamepadconnected', onGamepadConnected);
+    window.addEventListener('gamepaddisconnected', onGamepadDisconnected);
+
+    function getButtonPressed(gp, idx) {
+      return !!(gp.buttons[idx] && gp.buttons[idx].pressed);
+    }
+
+    function justPressed(gp, idx) {
+      const cur = getButtonPressed(gp, idx);
+      const prev = !!gamepadState.buttonsPrev[idx];
+      gamepadState.buttonsPrev[idx] = cur;
+      return cur && !prev;
+    }
+
+    function pollGamepad() {
+      gamepadState.left = false;
+      gamepadState.right = false;
+      gamepadState.jumpPressed = false;
+      gamepadState.usePressed = false;
+      gamepadState.toolPressed = false;
+      gamepadState.menuPressed = false;
+
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      if (!pads) return;
+
+      let gp = null;
+      if (gamepadState.index !== null && pads[gamepadState.index]) gp = pads[gamepadState.index];
+      if (!gp) gp = Array.from(pads).find(Boolean);
+
+      if (!gp) {
+        if (gamepadState.connected) {
+          gamepadState.connected = false;
+          gamepadState.index = null;
+          setControllerStatus('Not connected');
+        }
+        return;
+      }
+
+      if (!gamepadState.connected || gamepadState.index !== gp.index) {
+        gamepadState.connected = true;
+        gamepadState.index = gp.index;
+        gamepadState.name = gp.id || 'Unknown';
+        gamepadState.buttonsPrev = new Array(gp.buttons.length).fill(false);
+        setControllerStatus(`Connected (${gamepadState.name})`);
+      }
+
+      // Stick + dpad
+      const ax0 = gp.axes[0] || 0;
+      const dpadLeft = getButtonPressed(gp, 14);
+      const dpadRight = getButtonPressed(gp, 15);
+
+      gamepadState.left = ax0 < -GAMEPAD_DEADZONE || dpadLeft;
+      gamepadState.right = ax0 > GAMEPAD_DEADZONE || dpadRight;
+
+      // Standard mapping:
+      // 0 bottom (A on Xbox / B on Nintendo)
+      // 1 right  (B on Xbox / A on Nintendo)
+      // 2 left   (X on Xbox / Y on Nintendo)
+      // 3 top    (Y on Xbox / X on Nintendo)
+      // 9 start/plus
+      // We support both expectations so Switch users are safe.
+      const switchLike = isSwitchLike(gp.id);
+
+      const jumpCandidates = switchLike ? [0, 1] : [0];
+      const useCandidates = switchLike ? [2, 3] : [2];
+      const toolCandidates = switchLike ? [3, 2] : [3];
+      const menuCandidates = [9];
+
+      for (const idx of jumpCandidates) {
+        if (justPressed(gp, idx)) { gamepadState.jumpPressed = true; break; }
+      }
+      for (const idx of useCandidates) {
+        if (justPressed(gp, idx)) { gamepadState.usePressed = true; break; }
+      }
+      for (const idx of toolCandidates) {
+        if (justPressed(gp, idx)) { gamepadState.toolPressed = true; break; }
+      }
+      for (const idx of menuCandidates) {
+        if (justPressed(gp, idx)) { gamepadState.menuPressed = true; break; }
+      }
+
+      // keep prev states for other buttons too
+      for (let i = 0; i < gp.buttons.length; i++) {
+        if (gamepadState.buttonsPrev[i] === undefined) gamepadState.buttonsPrev[i] = false;
+        const cur = !!gp.buttons[i].pressed;
+        if (!jumpCandidates.includes(i) && !useCandidates.includes(i) && !toolCandidates.includes(i) && !menuCandidates.includes(i)) {
+          gamepadState.buttonsPrev[i] = cur;
+        }
+      }
+    }
+
     function generatePlayerSprite(temperature) {
       const band = temperature < 50 ? 'cold' : (temperature > 180 ? 'hot' : 'normal');
       if (spriteCache.playerByBand.has(band)) return spriteCache.playerByBand.get(band);
-
-      const spriteCanvas = document.createElement('canvas');
-      spriteCanvas.width = 30; spriteCanvas.height = 50;
-      const spriteCtx = spriteCanvas.getContext('2d');
-
-      let color = '#ffff00';
-      if (band === 'cold') color = '#0066ff';
-      if (band === 'hot') color = '#ff3300';
-
-      spriteCtx.fillStyle = color;
-      spriteCtx.fillRect(10, 5, 10, 10);
-      spriteCtx.fillRect(10, 15, 10, 15);
-      spriteCtx.fillRect(5, 18, 20, 5);
-      spriteCtx.fillRect(10, 30, 5, 15);
-      spriteCtx.fillRect(15, 30, 5, 15);
-
-      spriteCache.playerByBand.set(band, spriteCanvas);
-      return spriteCanvas;
+      const c = document.createElement('canvas'); c.width = 30; c.height = 50;
+      const s = c.getContext('2d');
+      let color = '#ffff00'; if (band === 'cold') color = '#0066ff'; if (band === 'hot') color = '#ff3300';
+      s.fillStyle = color; s.fillRect(10, 5, 10, 10); s.fillRect(10, 15, 10, 15); s.fillRect(5, 18, 20, 5); s.fillRect(10, 30, 5, 15); s.fillRect(15, 30, 5, 15);
+      spriteCache.playerByBand.set(band, c); return c;
     }
 
     function generatePlatformSprite(width, height, type = 'snow') {
       const key = `${type}:${width}x${height}`;
       if (spriteCache.platform.has(key)) return spriteCache.platform.get(key);
-
-      const spriteCanvas = document.createElement('canvas');
-      spriteCanvas.width = Math.max(1, Math.floor(width));
-      spriteCanvas.height = Math.max(1, Math.floor(height));
-      const spriteCtx = spriteCanvas.getContext('2d');
-
-      spriteCtx.fillStyle = type === 'snow' ? '#f0f8ff' : '#8b7355';
-      spriteCtx.fillRect(0, 0, spriteCanvas.width, spriteCanvas.height);
-
-      spriteCtx.fillStyle = type === 'snow' ? '#e0e8ff' : '#9b8365';
-      for (let i = 0; i < spriteCanvas.width; i += 10) {
-        for (let j = 0; j < spriteCanvas.height; j += 10) {
-          if (Math.random() > 0.5) spriteCtx.fillRect(i, j, 8, 8);
-        }
-      }
-
-      spriteCache.platform.set(key, spriteCanvas);
-      return spriteCanvas;
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.floor(width)); c.height = Math.max(1, Math.floor(height));
+      const s = c.getContext('2d');
+      s.fillStyle = type === 'snow' ? '#f0f8ff' : '#8b7355'; s.fillRect(0, 0, c.width, c.height);
+      s.fillStyle = type === 'snow' ? '#e0e8ff' : '#9b8365';
+      for (let i = 0; i < c.width; i += 10) for (let j = 0; j < c.height; j += 10) if (Math.random() > 0.5) s.fillRect(i, j, 8, 8);
+      spriteCache.platform.set(key, c); return c;
     }
 
     function generateResourceSprite(type) {
       if (spriteCache.resource.has(type)) return spriteCache.resource.get(type);
-
-      const spriteCanvas = document.createElement('canvas');
-      spriteCanvas.width = 40; spriteCanvas.height = 40;
-      const spriteCtx = spriteCanvas.getContext('2d');
-
+      const c = document.createElement('canvas'); c.width = 40; c.height = 40;
+      const s = c.getContext('2d');
       if (type === 'tree') {
-        spriteCtx.fillStyle = '#8b4513';
-        spriteCtx.fillRect(15, 20, 10, 15);
-        spriteCtx.fillStyle = '#228b22';
-        spriteCtx.beginPath(); spriteCtx.arc(20, 15, 10, 0, Math.PI * 2); spriteCtx.fill();
+        s.fillStyle = '#8b4513'; s.fillRect(15, 20, 10, 15);
+        s.fillStyle = '#228b22'; s.beginPath(); s.arc(20, 15, 10, 0, Math.PI * 2); s.fill();
       } else {
-        spriteCtx.fillStyle = '#808080';
-        spriteCtx.beginPath(); spriteCtx.arc(20, 20, 12, 0, Math.PI * 2); spriteCtx.fill();
-        spriteCtx.fillStyle = '#606060';
-        spriteCtx.fillRect(15, 15, 10, 10);
+        s.fillStyle = '#808080'; s.beginPath(); s.arc(20, 20, 12, 0, Math.PI * 2); s.fill();
+        s.fillStyle = '#606060'; s.fillRect(15, 15, 10, 10);
       }
-
-      spriteCache.resource.set(type, spriteCanvas);
-      return spriteCanvas;
+      spriteCache.resource.set(type, c); return c;
     }
 
     function generateItemSprite(itemType) {
       if (spriteCache.item.has(itemType)) return spriteCache.item.get(itemType);
-
-      const spriteCanvas = document.createElement('canvas');
-      spriteCanvas.width = 40; spriteCanvas.height = 40;
-      const spriteCtx = spriteCanvas.getContext('2d');
-
-      if (itemType === 'hotPocket') {
-        spriteCtx.fillStyle = '#ff6347'; spriteCtx.fillRect(10, 10, 20, 20);
-        spriteCtx.fillStyle = '#ff8c69'; spriteCtx.fillRect(13, 13, 14, 14);
-      } else if (itemType === 'heatLamp') {
-        spriteCtx.fillStyle = '#ffd700';
-        spriteCtx.beginPath(); spriteCtx.arc(20, 20, 10, 0, Math.PI * 2); spriteCtx.fill();
-        spriteCtx.fillStyle = '#ffed4e';
-        spriteCtx.beginPath(); spriteCtx.arc(20, 20, 6, 0, Math.PI * 2); spriteCtx.fill();
-      } else if (itemType === 'thermalBlanket') {
-        spriteCtx.fillStyle = '#ff1493'; spriteCtx.fillRect(8, 8, 24, 24);
-        spriteCtx.fillStyle = '#ff69b4'; spriteCtx.fillRect(12, 12, 16, 16);
-      }
-
-      spriteCache.item.set(itemType, spriteCanvas);
-      return spriteCanvas;
+      const c = document.createElement('canvas'); c.width = 40; c.height = 40;
+      const s = c.getContext('2d');
+      if (itemType === 'hotPocket') { s.fillStyle = '#ff6347'; s.fillRect(10, 10, 20, 20); s.fillStyle = '#ff8c69'; s.fillRect(13, 13, 14, 14); }
+      else if (itemType === 'heatLamp') {
+        s.fillStyle = '#ffd700'; s.beginPath(); s.arc(20, 20, 10, 0, Math.PI * 2); s.fill();
+        s.fillStyle = '#ffed4e'; s.beginPath(); s.arc(20, 20, 6, 0, Math.PI * 2); s.fill();
+      } else if (itemType === 'thermalBlanket') { s.fillStyle = '#ff1493'; s.fillRect(8, 8, 24, 24); s.fillStyle = '#ff69b4'; s.fillRect(12, 12, 16, 16); }
+      spriteCache.item.set(itemType, c); return c;
     }
 
     function generateFogSprite(width, height) {
       const key = `${width}x${height}`;
       if (spriteCache.fogBySize.has(key)) return spriteCache.fogBySize.get(key);
-
-      const spriteCanvas = document.createElement('canvas');
-      spriteCanvas.width = width; spriteCanvas.height = height;
-      const spriteCtx = spriteCanvas.getContext('2d');
-
-      const gradient = spriteCtx.createLinearGradient(0, 0, 0, height);
-      gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-      gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-      spriteCtx.fillStyle = gradient;
-      spriteCtx.fillRect(0, 0, width, height);
-
-      spriteCache.fogBySize.set(key, spriteCanvas);
-      return spriteCanvas;
+      const c = document.createElement('canvas'); c.width = width; c.height = height;
+      const s = c.getContext('2d');
+      const g = s.createLinearGradient(0, 0, 0, height);
+      g.addColorStop(0, 'rgba(255, 255, 255, 0.8)'); g.addColorStop(1, 'rgba(255, 255, 255, 0)');
+      s.fillStyle = g; s.fillRect(0, 0, width, height);
+      spriteCache.fogBySize.set(key, c); return c;
     }
 
-    function areaTopY(area) {
-      return WORLD_FLOOR_Y - area * LEVEL_HEIGHT;
-    }
+    function areaTopY(area) { return WORLD_FLOOR_Y - area * LEVEL_HEIGHT; }
 
     function generateLevel(area) {
-      platforms = [];
-      resources = [];
-      stores = [];
-
+      platforms = []; resources = []; stores = [];
       const topY = areaTopY(area);
-      const startY = topY + LEVEL_HEIGHT - 100; // lower portion of this area
+      const startY = topY + LEVEL_HEIGHT - 100;
 
       for (let i = 0; i < 15; i++) {
         const y = startY - (i * 120);
@@ -364,20 +441,11 @@
         platforms.push({ x, y, width, height: 30, type });
 
         if (Math.random() > 0.5) {
-          resources.push({
-            x: x + Math.random() * Math.max(10, width - 40),
-            y: y - 50,
-            type: Math.random() > 0.5 ? 'tree' : 'rock',
-            width: 40, height: 40
-          });
+          resources.push({ x: x + Math.random() * Math.max(10, width - 40), y: y - 50, type: Math.random() > 0.5 ? 'tree' : 'rock', width: 40, height: 40 });
         }
       }
 
-      stores.push({
-        x: canvas.width / 2 - 30,
-        y: startY - 350,
-        width: 60, height: 60, area
-      });
+      stores.push({ x: canvas.width / 2 - 30, y: startY - 350, width: 60, height: 60, area });
     }
 
     function setTool(tool) {
@@ -411,15 +479,14 @@
 
     function bindHoldButton(id, key) {
       const el = document.getElementById(id);
-      const setOn = (e) => { if (e) e.preventDefault(); touchControls[key] = true; };
-      const setOff = (e) => { if (e) e.preventDefault(); touchControls[key] = false; };
-
-      el.addEventListener('touchstart', setOn, { passive: false });
-      el.addEventListener('touchend', setOff, { passive: false });
-      el.addEventListener('touchcancel', setOff, { passive: false });
-      el.addEventListener('mousedown', setOn);
-      el.addEventListener('mouseup', setOff);
-      el.addEventListener('mouseleave', setOff);
+      const on = (e) => { if (e) e.preventDefault(); touchControls[key] = true; };
+      const off = (e) => { if (e) e.preventDefault(); touchControls[key] = false; };
+      el.addEventListener('touchstart', on, { passive: false });
+      el.addEventListener('touchend', off, { passive: false });
+      el.addEventListener('touchcancel', off, { passive: false });
+      el.addEventListener('mousedown', on);
+      el.addEventListener('mouseup', off);
+      el.addEventListener('mouseleave', off);
     }
 
     bindHoldButton('leftBtn', 'left');
@@ -429,10 +496,7 @@
     document.getElementById('useBtn').addEventListener('touchstart', (e) => { e.preventDefault(); openItemMenu(); }, { passive: false });
     document.getElementById('useBtn').addEventListener('click', openItemMenu);
 
-    document.getElementById('toolBtn').addEventListener('touchstart', (e) => {
-      e.preventDefault();
-      setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
-    }, { passive: false });
+    document.getElementById('toolBtn').addEventListener('touchstart', (e) => { e.preventDefault(); setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'); }, { passive: false });
     document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
 
     document.addEventListener('keydown', (e) => {
@@ -464,20 +528,11 @@
 
     function checkResourceClick(x, y) {
       for (let i = resources.length - 1; i >= 0; i--) {
-        const resource = resources[i];
-        const screenX = resource.x;
-        const screenY = resource.y - camera.y;
-
-        if (x > screenX && x < screenX + resource.width && y > screenY && y < screenY + resource.height) {
-          if (player.currentTool === 'axe' && resource.type === 'tree') {
-            inventory.wood++;
-            resources.splice(i, 1);
-            updateUI();
-          } else if (player.currentTool === 'pickaxe' && resource.type === 'rock') {
-            inventory.stone++;
-            resources.splice(i, 1);
-            updateUI();
-          }
+        const r = resources[i];
+        const sx = r.x, sy = r.y - camera.y;
+        if (x > sx && x < sx + r.width && y > sy && y < sy + r.height) {
+          if (player.currentTool === 'axe' && r.type === 'tree') { inventory.wood++; resources.splice(i, 1); updateUI(); }
+          else if (player.currentTool === 'pickaxe' && r.type === 'rock') { inventory.stone++; resources.splice(i, 1); updateUI(); }
           return;
         }
       }
@@ -497,39 +552,32 @@
       ];
 
       buyItems.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'store-item';
-
-        const c = document.createElement('canvas');
-        c.width = 50; c.height = 50;
+        const d = document.createElement('div');
+        d.className = 'store-item';
+        const c = document.createElement('canvas'); c.width = 50; c.height = 50;
         c.getContext('2d').drawImage(generateItemSprite(item.type), 0, 0, 50, 50);
-
-        itemDiv.innerHTML = `
+        d.innerHTML = `
           <div class="item-info">
             <div class="item-name">🔥 ${item.name}</div>
             <div class="item-details">Price: $${item.price}</div>
           </div>
-          <div class="item-buttons">
-            <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
-          </div>`;
-        itemDiv.insertBefore(c, itemDiv.firstChild);
-        storeItems.appendChild(itemDiv);
+          <div class="item-buttons"><button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button></div>`;
+        d.insertBefore(c, d.firstChild);
+        storeItems.appendChild(d);
       });
 
       storeItems.innerHTML += '<hr style="margin: 20px 0; border: 1px solid #555;">';
 
       [{ id: 'wood', name: 'Wood', price: 20 }, { id: 'stone', name: 'Stone', price: 30 }].forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.className = 'store-item';
-        itemDiv.innerHTML = `
+        const d = document.createElement('div');
+        d.className = 'store-item';
+        d.innerHTML = `
           <div class="item-info">
             <div class="item-name">${item.name}</div>
             <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id]}</div>
           </div>
-          <div class="item-buttons">
-            <button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button>
-          </div>`;
-        storeItems.appendChild(itemDiv);
+          <div class="item-buttons"><button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button></div>`;
+        storeItems.appendChild(d);
       });
 
       storeMenu.style.display = 'block';
@@ -552,26 +600,22 @@
       const itemOptions = document.getElementById('itemOptions');
       itemOptions.innerHTML = '';
 
-      Object.keys(heatItems).forEach(itemKey => {
-        if (inventory[itemKey] > 0) {
-          const item = heatItems[itemKey];
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'item-option';
+      Object.keys(heatItems).forEach(k => {
+        if (inventory[k] > 0) {
+          const item = heatItems[k];
+          const d = document.createElement('div');
+          d.className = 'item-option';
+          const c = document.createElement('canvas'); c.width = 50; c.height = 50;
+          c.getContext('2d').drawImage(generateItemSprite(k), 0, 0, 50, 50);
 
-          const c = document.createElement('canvas');
-          c.width = 50; c.height = 50;
-          c.getContext('2d').drawImage(generateItemSprite(itemKey), 0, 0, 50, 50);
-
-          itemDiv.innerHTML = `
+          d.innerHTML = `
             <div class="item-info">
               <div class="item-name">🔥 ${item.name}</div>
-              <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[itemKey]}</div>
+              <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[k]}</div>
             </div>
-            <div class="item-buttons">
-              <button class="item-btn" onclick="useItem('${itemKey}')">Use</button>
-            </div>`;
-          itemDiv.insertBefore(c, itemDiv.firstChild);
-          itemOptions.appendChild(itemDiv);
+            <div class="item-buttons"><button class="item-btn" onclick="useItem('${k}')">Use</button></div>`;
+          d.insertBefore(c, d.firstChild);
+          itemOptions.appendChild(d);
         }
       });
 
@@ -606,28 +650,45 @@
       const tempPercent = ((player.temperature - 32) / (212 - 32)) * 100;
       document.getElementById('temperatureBar').style.width = Math.max(0, Math.min(100, tempPercent)) + '%';
 
-      const activeHeatItemsDiv = document.getElementById('activeHeatItems');
-      activeHeatItemsDiv.innerHTML = '';
+      const activeDiv = document.getElementById('activeHeatItems');
+      activeDiv.innerHTML = '';
       const now = performance.now() / 1000;
-
       activeHeatItems.forEach(item => {
         const remaining = Math.ceil(item.duration - (now - item.startTime));
         if (remaining > 0) {
-          const itemDiv = document.createElement('div');
-          itemDiv.className = 'heat-item-timer';
-          itemDiv.textContent = `${heatItems[item.type].name}: ${remaining}s`;
-          activeHeatItemsDiv.appendChild(itemDiv);
+          const d = document.createElement('div');
+          d.className = 'heat-item-timer';
+          d.textContent = `${heatItems[item.type].name}: ${remaining}s`;
+          activeDiv.appendChild(d);
         }
       });
     }
 
     function updatePlayer(dt) {
+      pollGamepad();
+
+      // Controller one-shots
+      if (gamepadState.usePressed) {
+        if (gameState.itemMenuOpen) closeItemMenu();
+        else openItemMenu();
+      }
+      if (gamepadState.toolPressed) {
+        setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
+      }
+      if (gamepadState.menuPressed) {
+        if (gameState.storeOpen) closeStore();
+        else if (gameState.itemMenuOpen) closeItemMenu();
+        else openItemMenu();
+      }
+
       if (gameState.storeOpen || gameState.itemMenuOpen) {
         player.velocityXTarget = 0;
       } else {
-        if (keys['ArrowLeft'] || keys['a'] || keys['A'] || touchControls.left) player.velocityXTarget = -5;
-        if (keys['ArrowRight'] || keys['d'] || keys['D'] || touchControls.right) player.velocityXTarget = 5;
-        if ((keys[' '] || keys['w'] || keys['W'] || touchControls.jump) && !player.isJumping) {
+        if (keys['ArrowLeft'] || keys['a'] || keys['A'] || touchControls.left || gamepadState.left) player.velocityXTarget = -5;
+        if (keys['ArrowRight'] || keys['d'] || keys['D'] || touchControls.right || gamepadState.right) player.velocityXTarget = 5;
+
+        const jumpInput = (keys[' '] || keys['w'] || keys['W'] || touchControls.jump || gamepadState.jumpPressed);
+        if (jumpInput && !player.isJumping) {
           player.velocityY = -12;
           player.isJumping = true;
           touchControls.jump = false;
@@ -647,15 +708,14 @@
         player.isJumping = false;
       }
 
-      platforms.forEach(platform => {
+      platforms.forEach(p => {
         if (
           player.velocityY >= 0 &&
-          player.y + player.height >= platform.y &&
-          player.y + player.height <= platform.y + platform.height + Math.max(10, player.velocityY + 2) &&
-          player.x + player.width > platform.x &&
-          player.x < platform.x + platform.width
+          player.y + player.height >= p.y &&
+          player.y + player.height <= p.y + p.height + Math.max(10, player.velocityY + 2) &&
+          player.x + player.width > p.x && player.x < p.x + p.width
         ) {
-          player.y = platform.y - player.height;
+          player.y = p.y - player.height;
           player.velocityY = 0;
           player.isJumping = false;
         }
@@ -663,8 +723,8 @@
 
       const interactDown = !!(keys['e'] || keys['E']);
       if (interactDown && !interactionPressed && !gameState.itemMenuOpen && !gameState.storeOpen) {
-        for (const store of stores) {
-          const dist = Math.hypot((player.x + player.width / 2) - (store.x + store.width / 2), (player.y + player.height / 2) - (store.y + store.height / 2));
+        for (const s of stores) {
+          const dist = Math.hypot((player.x + player.width / 2) - (s.x + s.width / 2), (player.y + player.height / 2) - (s.y + s.height / 2));
           if (dist < 110) { openStore(); break; }
         }
       }
@@ -715,32 +775,27 @@
       ctx.lineWidth = 2;
       ctx.strokeRect(0, groundScreenY, canvas.width, ground.height);
 
-      platforms.forEach(platform => {
-        const screenY = platform.y - camera.y;
-        if (screenY > -100 && screenY < canvas.height + 100) {
-          ctx.drawImage(generatePlatformSprite(platform.width, platform.height, platform.type), platform.x, screenY);
-        }
+      platforms.forEach(p => {
+        const y = p.y - camera.y;
+        if (y > -100 && y < canvas.height + 100) ctx.drawImage(generatePlatformSprite(p.width, p.height, p.type), p.x, y);
       });
 
-      resources.forEach(resource => {
-        const screenY = resource.y - camera.y;
-        if (screenY > -100 && screenY < canvas.height + 100) {
-          ctx.drawImage(generateResourceSprite(resource.type), resource.x, screenY);
-        }
+      resources.forEach(r => {
+        const y = r.y - camera.y;
+        if (y > -100 && y < canvas.height + 100) ctx.drawImage(generateResourceSprite(r.type), r.x, y);
       });
 
-      stores.forEach(store => {
-        const screenY = store.y - camera.y;
-        if (screenY > -100 && screenY < canvas.height + 100) {
-          ctx.fillStyle = '#8b4513'; ctx.fillRect(store.x, screenY, store.width, store.height);
+      stores.forEach(s => {
+        const y = s.y - camera.y;
+        if (y > -100 && y < canvas.height + 100) {
+          ctx.fillStyle = '#8b4513'; ctx.fillRect(s.x, y, s.width, s.height);
           ctx.fillStyle = '#d2691e'; ctx.font = '20px Arial'; ctx.textAlign = 'center';
-          ctx.fillText('🛍️', store.x + store.width / 2, screenY + 35);
+          ctx.fillText('🛍️', s.x + s.width / 2, y + 35);
         }
       });
 
-      const playerScreenY = player.y - camera.y;
-      ctx.drawImage(generatePlayerSprite(player.temperature), player.x, playerScreenY);
-
+      const py = player.y - camera.y;
+      ctx.drawImage(generatePlayerSprite(player.temperature), player.x, py);
       ctx.drawImage(generateFogSprite(canvas.width, Math.floor(canvas.height / 3)), 0, 0);
     }
 
@@ -754,7 +809,7 @@
       if (!gameState.gameOver) requestAnimationFrame(gameLoop);
     }
 
-    // expose for inline onclick
+    // Expose inline onclick handlers
     window.closeStore = closeStore;
     window.closeItemMenu = closeItemMenu;
     window.buyItem = buyItem;
@@ -764,4 +819,4 @@
     resizeCanvas();
   </script>
 </body>
-</html>
+  </html>
