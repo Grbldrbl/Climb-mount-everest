@@ -154,7 +154,6 @@
   </div>
 
   <script>
-    // ============== Core ==============
     const WORLD_WIDTH = 22000;
     const WORLD_HEIGHT = 8600;
 
@@ -166,14 +165,13 @@
     const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
 
     const OXYGEN_START_ALT = 3200;
-    const OXYGEN_DRAIN_MAX = 0.56; // ~3 minutes to 0 at max altitude
+    const OXYGEN_DRAIN_MAX = 0.56;
     const OXYGEN_RECOVER = 6;
 
     const gameState = {
       menu: true,
       storeOpen: false,
       itemMenuOpen: false,
-      gameOver: false,
       music: null,
       musicUrl: '',
       won: false,
@@ -208,6 +206,7 @@
     let actionDown = false;
     let lastTime = performance.now();
     let started = false;
+    let deathCooldown = 0;
 
     const terrainPoints = [];
     const trees = [];
@@ -223,7 +222,6 @@
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // ============== Helpers ==============
     function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
     function getHeightMeters() { return Math.max(0, Math.floor((WORLD_HEIGHT - player.y) * 0.82 - 120)); }
     function zoneNameByAlt(alt) {
@@ -237,7 +235,6 @@
       document.getElementById('controllerStatus').textContent = `Controller: ${msg}`;
     }
 
-    // ============== Gamepad (Switch-friendly) ==============
     const gamepadState = {
       index: null, connected: false, name: '', prev: [],
       left: false, right: false,
@@ -308,11 +305,9 @@
       for (const i of useButtons) if (just(gp, i)) { gamepadState.usePressed = true; break; }
     }
 
-    // ============== Resize ==============
     function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resizeCanvas);
 
-    // ============== Terrain ==============
     function getTerrainY(worldX) {
       const x = clamp(worldX, 0, WORLD_WIDTH);
       const step = 40;
@@ -339,12 +334,11 @@
 
       const step = 40;
       const baseY = WORLD_HEIGHT - 180;
-      const peakTargetY = 1650; // gentler mountain
+      const peakTargetY = 1650;
 
       let x = 0;
       while (x <= WORLD_WIDTH) {
         const t = x / WORLD_WIDTH;
-
         const broadRise = Math.pow(t, 1.15);
         const upperCone = Math.pow(Math.max(0, (t - 0.70) / 0.30), 1.5);
 
@@ -369,29 +363,31 @@
         const steepness = Math.abs(pNext.y - pPrev.y);
         const altitude = WORLD_HEIGHT - p.y;
 
-        if (altitude < 2800 && steepness < 16 && Math.random() > 0.72) {
+        // much more frequent trees
+        if (altitude < 3200 && steepness < 20 && Math.random() > 0.52) {
           trees.push({
-            x: p.x + (Math.random() - 0.5) * 16,
+            x: p.x + (Math.random() - 0.5) * 18,
             yBottom: p.y,
-            width: 32 + Math.random() * 6,
-            height: 56 + Math.random() * 22,
+            width: 30 + Math.random() * 8,
+            height: 52 + Math.random() * 26,
             chopped: false,
           });
         }
 
-        const rockChance = altitude > 2600 ? 0.32 : 0.20;
+        const rockChance = altitude > 2600 ? 0.42 : 0.30;
         if (Math.random() < rockChance) {
           rocks.push({
             x: p.x + (Math.random() - 0.5) * 14,
             yBottom: p.y,
-            width: 30 + Math.random() * 18,
-            height: 20 + Math.random() * 16,
+            width: 28 + Math.random() * 20,
+            height: 18 + Math.random() * 18,
             mined: false,
           });
         }
 
-        if (i % 32 === 0 && steepness < 13) shops.push({ x: p.x - 30, yBottom: p.y, width: 60, height: 60 });
-        if (i % 52 === 0 && steepness < 12) camps.push({ x: p.x - 26, yBottom: p.y, width: 52, height: 36, reached: false });
+        // much more frequent shops and camps
+        if (i % 18 === 0 && steepness < 16) shops.push({ x: p.x - 30, yBottom: p.y, width: 60, height: 60 });
+        if (i % 24 === 0 && steepness < 15) camps.push({ x: p.x - 26, yBottom: p.y, width: 52, height: 36, reached: false });
       }
 
       player.x = 260;
@@ -404,7 +400,6 @@
       checkpoint.reached = true;
     }
 
-    // ============== World interactions ==============
     function isNearShop() {
       const px = player.x + player.width * 0.5;
       const py = player.y + player.height * 0.5;
@@ -540,9 +535,9 @@
       player.isJumping = false;
       player.temperature = 110;
       player.oxygen = 85;
+      deathCooldown = 2.0;
     }
 
-    // ============== UI / menus ==============
     function openStore() {
       if (gameState.storeOpen) return;
       gameState.storeOpen = true;
@@ -701,7 +696,6 @@
       }
     }
 
-    // ============== Input ==============
     document.addEventListener('keydown', (e) => {
       keys[e.key] = true;
       if (e.key === '1') setTool('axe');
@@ -738,12 +732,10 @@
     document.getElementById('mineBtn').addEventListener('click', tryMineOrChop);
     document.getElementById('useBtn').addEventListener('click', openItemMenu);
     document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
-
     canvas.addEventListener('click', () => {
       if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
     });
 
-    // ============== Draw ==============
     function drawTerrain() {
       const altitude = getHeightMeters();
       const coldFactor = clamp((altitude - 1200) / 3800, 0, 1);
@@ -892,7 +884,6 @@
         ctx.arc(sx, sy, a.radius, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(240,248,255,0.9)';
         ctx.fill();
-
         ctx.beginPath();
         ctx.arc(sx + a.radius * 0.25, sy - a.radius * 0.2, a.radius * 0.45, 0, Math.PI * 2);
         ctx.fillStyle = 'rgba(220,235,248,0.85)';
@@ -916,7 +907,7 @@
       ctx.fillRect(sx + 15, sy + 30, 5, 15);
     }
 
-    function drawWeatherOverlays(dt) {
+    function drawWeatherOverlays() {
       const alt = getHeightMeters();
       const windStrength = clamp((alt - 2200) / 3500, 0, 1);
 
@@ -938,16 +929,16 @@
 
       if (alt > 4200) {
         const fogAlpha = clamp((alt - 4200) / 2200, 0.06, 0.22);
-        const fog = ctx.createLinearGradient(0,0,0,canvas.height * 0.5);
+        const fog = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.5);
         fog.addColorStop(0, `rgba(255,255,255,${fogAlpha})`);
         fog.addColorStop(1, 'rgba(255,255,255,0)');
         ctx.fillStyle = fog;
-        ctx.fillRect(0,0,canvas.width,canvas.height * 0.6);
+        ctx.fillRect(0, 0, canvas.width, canvas.height * 0.6);
       }
     }
 
-    // ============== Loop ==============
     function update(dt, nowSec) {
+      if (deathCooldown > 0) deathCooldown -= dt;
       pollGamepad();
 
       if (gamepadState.toolPressed) setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
@@ -988,7 +979,6 @@
 
       terrainCollisionAndSlip(dt);
 
-      // temperature
       player.temperature -= BASE_TEMP_DECAY_PER_SEC * dt;
       activeHeatItems = activeHeatItems.filter(it => {
         const elapsed = nowSec - it.start;
@@ -999,7 +989,6 @@
         return false;
       });
 
-      // oxygen (slow: 3 min max drain at highest altitude)
       const alt = getHeightMeters();
       if (alt > OXYGEN_START_ALT) {
         const t = clamp((alt - OXYGEN_START_ALT) / 4200, 0, 1);
@@ -1010,9 +999,7 @@
       }
       player.oxygen = clamp(player.oxygen, 0, 100);
 
-      // low oxygen penalty
       if (player.oxygen < 15) player.temperature -= (15 - player.oxygen) * 0.014 * (dt * 60);
-
       player.temperature = clamp(player.temperature, 32, player.maxTemperature);
 
       checkCampReached();
@@ -1024,7 +1011,7 @@
         alert('🏁 You reached the summit! Congratulations!');
       }
 
-      if (player.temperature <= 32 || player.oxygen <= 0) {
+      if (deathCooldown <= 0 && (player.temperature <= 32 || player.oxygen <= 0)) {
         alert('You collapsed! Respawning at last camp...');
         respawnAtCheckpoint();
       }
@@ -1039,14 +1026,14 @@
       updateUI();
     }
 
-    function render(dt) {
+    function render() {
       drawTerrain();
       drawTrees();
       drawRocks();
       drawShopsAndCamps();
       drawAvalanches();
       drawPlayer();
-      drawWeatherOverlays(dt);
+      drawWeatherOverlays();
     }
 
     function loop(nowMs) {
@@ -1055,11 +1042,10 @@
       const nowSec = nowMs / 1000;
 
       update(dt, nowSec);
-      render(dt);
+      render();
       requestAnimationFrame(loop);
     }
 
-    // ============== Boot ==============
     function bindHoldButton(id, key) {
       const el = document.getElementById(id);
       const on = (e)=>{ e.preventDefault(); touchControls[key] = true; };
@@ -1108,7 +1094,6 @@
 
     resizeCanvas();
 
-    // expose inline handlers
     window.closeStore = closeStore;
     window.closeItemMenu = closeItemMenu;
     window.buyItem = buyItem;
