@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Climb Mount Everest - Long Real Mountain</title>
+  <title>Climb Mount Everest - Fixed Inputs</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #1a1a2e; overflow: hidden; }
@@ -31,8 +31,7 @@
 
     #ui, #inventory {
       position: absolute; top: 10px; z-index: 100; color: #fff;
-      background: rgba(0,0,0,0.55); border-radius: 8px; padding: 12px;
-      font-size: 13px;
+      background: rgba(0,0,0,0.55); border-radius: 8px; padding: 12px; font-size: 13px;
     }
     #ui { left: 10px; min-width: 300px; }
     #inventory { right: 10px; min-width: 210px; }
@@ -43,7 +42,6 @@
       margin-top: 4px; margin-bottom: 6px;
     }
     .bar { height: 100%; width: 100%; }
-
     #temperatureBar { background: linear-gradient(90deg, #2f80ff, #39d76d, #ffe259, #ff4b4b); }
     #oxygenBar { background: linear-gradient(90deg, #7bd3ff, #4cb8ff, #2d9dff); }
 
@@ -156,43 +154,25 @@
   <script>
     const WORLD_WIDTH = 22000;
     const WORLD_HEIGHT = 8600;
-
     const GRAVITY = 0.56;
     const PLAYER_SPEED = 5;
     const JUMP_POWER = -12;
-
     const FREEZE_SECONDS = 240;
     const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
-
     const OXYGEN_START_ALT = 3200;
     const OXYGEN_DRAIN_MAX = 0.56;
     const OXYGEN_RECOVER = 6;
 
-    const gameState = {
-      menu: true,
-      storeOpen: false,
-      itemMenuOpen: false,
-      music: null,
-      musicUrl: '',
-      won: false,
-    };
-
+    const gameState = { menu: true, storeOpen: false, itemMenuOpen: false, music: null, musicUrl: '', won: false };
     const player = {
-      x: 260, y: 0,
-      width: 30, height: 50,
-      vx: 0, vy: 0, targetVx: 0,
-      isJumping: true,
+      x: 260, y: 0, width: 30, height: 50,
+      vx: 0, vy: 0, targetVx: 0, isJumping: true,
       temperature: 122, maxTemperature: 212,
-      oxygen: 100,
-      currentTool: 'axe',
+      oxygen: 100, currentTool: 'axe'
     };
-
     const inventory = {
-      wood: 0, stone: 0,
-      hotPocket: 0, heatLamp: 0, thermalBlanket: 0, oxygenTank: 0,
-      money: 100,
+      wood: 0, stone: 0, hotPocket: 0, heatLamp: 0, thermalBlanket: 0, oxygenTank: 0, money: 100
     };
-
     const items = {
       hotPocket: { duration: 30, name: 'Hot Pocket', price: 50, type: 'temp' },
       heatLamp: { duration: 60, name: 'Heat Lamp', price: 100, type: 'temp' },
@@ -288,11 +268,11 @@
       }
 
       const ax = gp.axes[0] || 0;
-      gamepadState.left = ax < -DEADZONE || btn(gp,14);
-      gamepadState.right = ax > DEADZONE || btn(gp,15);
+      gamepadState.left = ax < -DEADZONE || btn(gp, 14);
+      gamepadState.right = ax > DEADZONE || btn(gp, 15);
 
       const sw = isSwitchLike(gp.id);
-      const jumpButtons = sw ? [0,1] : [0];
+      const jumpButtons = sw ? [0, 1] : [0];
       const mineButtons = [2];
       const toolButtons = [3];
       const downButtons = [13];
@@ -325,12 +305,8 @@
     }
 
     function generateWorld() {
-      terrainPoints.length = 0;
-      trees.length = 0;
-      rocks.length = 0;
-      shops.length = 0;
-      camps.length = 0;
-      avalanches.length = 0;
+      terrainPoints.length = 0; trees.length = 0; rocks.length = 0;
+      shops.length = 0; camps.length = 0; avalanches.length = 0;
 
       const step = 40;
       const baseY = WORLD_HEIGHT - 180;
@@ -341,17 +317,13 @@
         const t = x / WORLD_WIDTH;
         const broadRise = Math.pow(t, 1.15);
         const upperCone = Math.pow(Math.max(0, (t - 0.70) / 0.30), 1.5);
-
         const ridge1 = Math.sin(t * Math.PI * 3.0) * 55;
         const ridge2 = Math.sin(t * Math.PI * 9.5 + 0.9) * 18;
         const ridge3 = Math.sin(t * Math.PI * 20.0 + 1.7) * 7;
-
         const ledge = (Math.abs(Math.sin(t * Math.PI * 6.0)) < 0.16) ? 18 : 0;
         const mountainLift = (baseY - peakTargetY) * (0.82 * broadRise + 0.18 * upperCone);
-
         let y = baseY - mountainLift + ridge1 + ridge2 + ridge3 + ledge;
         y = clamp(y, 1450, WORLD_HEIGHT - 90);
-
         terrainPoints.push({ x, y });
         x += step;
       }
@@ -363,14 +335,10 @@
         const steepness = Math.abs(pNext.y - pPrev.y);
         const altitude = WORLD_HEIGHT - p.y;
 
-        // much more frequent trees
         if (altitude < 3200 && steepness < 20 && Math.random() > 0.52) {
           trees.push({
             x: p.x + (Math.random() - 0.5) * 18,
-            yBottom: p.y,
-            width: 30 + Math.random() * 8,
-            height: 52 + Math.random() * 26,
-            chopped: false,
+            yBottom: p.y, width: 30 + Math.random() * 8, height: 52 + Math.random() * 26, chopped: false
           });
         }
 
@@ -378,14 +346,10 @@
         if (Math.random() < rockChance) {
           rocks.push({
             x: p.x + (Math.random() - 0.5) * 14,
-            yBottom: p.y,
-            width: 28 + Math.random() * 20,
-            height: 18 + Math.random() * 18,
-            mined: false,
+            yBottom: p.y, width: 28 + Math.random() * 20, height: 18 + Math.random() * 18, mined: false
           });
         }
 
-        // much more frequent shops and camps
         if (i % 18 === 0 && steepness < 16) shops.push({ x: p.x - 30, yBottom: p.y, width: 60, height: 60 });
         if (i % 24 === 0 && steepness < 15) camps.push({ x: p.x - 26, yBottom: p.y, width: 52, height: 36, reached: false });
       }
@@ -410,9 +374,12 @@
       }
       return false;
     }
+
     function tryOpenShop() { if (isNearShop()) openStore(); }
 
     function tryMineOrChop() {
+      if (gameState.storeOpen || gameState.itemMenuOpen) return; // fixed guard
+
       const range = 82;
       const px = player.x + player.width * 0.5;
       const py = player.y + player.height * 0.5;
@@ -465,18 +432,13 @@
     function spawnAvalanche(dt, nowSec) {
       const alt = getHeightMeters();
       if (alt < 4400) return;
-
       const minInterval = 10 - Math.min(4, (alt - 4400) / 1400);
       if (nowSec - lastAvalancheSpawn < minInterval) return;
-
       if (Math.random() < 0.014 * dt * 60) {
         const aheadX = clamp(player.x + 360 + Math.random() * 700, 0, WORLD_WIDTH);
-        const y = getTerrainY(aheadX) - 90;
         avalanches.push({
-          x: aheadX, y,
-          radius: 20 + Math.random() * 12,
-          vx: -3.4 - Math.random() * 1.8,
-          life: 10,
+          x: aheadX, y: getTerrainY(aheadX) - 90, radius: 20 + Math.random() * 12,
+          vx: -3.4 - Math.random() * 1.8, life: 10
         });
         lastAvalancheSpawn = nowSec;
       }
@@ -507,9 +469,7 @@
       const rightFootX = player.x + player.width - 4;
       const feetY = player.y + player.height;
 
-      const groundL = getTerrainY(leftFootX);
-      const groundR = getTerrainY(rightFootX);
-      const groundY = Math.min(groundL, groundR);
+      const groundY = Math.min(getTerrainY(leftFootX), getTerrainY(rightFootX));
 
       if (feetY >= groundY) {
         player.y = groundY - player.height;
@@ -530,18 +490,48 @@
     function respawnAtCheckpoint() {
       player.x = checkpoint.x;
       player.y = checkpoint.y;
-      player.vx = 0;
-      player.vy = 0;
-      player.isJumping = false;
-      player.temperature = 110;
-      player.oxygen = 85;
+      player.vx = 0; player.vy = 0; player.isJumping = false;
+      player.temperature = 110; player.oxygen = 85;
       deathCooldown = 2.0;
     }
 
-    function openStore() {
-      if (gameState.storeOpen) return;
-      gameState.storeOpen = true;
+    // FIXED: global callable button actions (inline + controller + touch all route here)
+    function buyItem(id, price) {
+      if (!gameState.storeOpen) return;
+      if (inventory.money < price) { alert('Not enough money!'); return; }
+      inventory.money -= price;
+      inventory[id] = (inventory[id] || 0) + 1;
+      openStore(); // rerender store
+      updateUI();
+    }
 
+    function sellItem(id, price) {
+      if (!gameState.storeOpen) return;
+      if (!inventory[id] || inventory[id] <= 0) return;
+      inventory[id]--;
+      inventory.money += price;
+      openStore(); // rerender store
+      updateUI();
+    }
+
+    function useItem(key) {
+      if (!inventory[key] || inventory[key] <= 0) return;
+      inventory[key]--;
+
+      const item = items[key];
+      if (item.type === 'oxygen') {
+        player.oxygen = Math.min(100, player.oxygen + 45);
+      } else {
+        activeHeatItems.push({ type: key, duration: item.duration, start: performance.now() / 1000 });
+        player.temperature = Math.min(player.maxTemperature, player.temperature + 40);
+      }
+
+      updateUI();
+      closeItemMenu();
+    }
+
+    function openStore() {
+      gameState.storeOpen = true;
       const storeItems = document.getElementById('storeItems');
       storeItems.innerHTML = '';
 
@@ -558,34 +548,35 @@
         d.innerHTML = `
           <div class="item-info">
             <div class="item-name">${item.id === 'oxygenTank' ? '🫧' : '🔥'} ${item.name}</div>
-            <div class="item-details">Price: $${item.price}</div>
+            <div class="item-details">Price: $${item.price} | Have: ${inventory[item.id] || 0}</div>
           </div>
-          <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
+          <button class="item-btn" data-action="buy" data-id="${item.id}" data-price="${item.price}">Buy</button>
         `;
         storeItems.appendChild(d);
       }
 
       storeItems.innerHTML += `<hr style="margin:12px 0;border-color:#555;">`;
 
-      const sell = [
+      const sellItems = [
         { id: 'wood', name: 'Wood', price: 20 },
         { id: 'stone', name: 'Stone', price: 30 },
       ];
 
-      for (const item of sell) {
+      for (const item of sellItems) {
         const d = document.createElement('div');
         d.className = 'store-item';
         d.innerHTML = `
           <div class="item-info">
             <div class="item-name">${item.name}</div>
-            <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id]}</div>
+            <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id] || 0}</div>
           </div>
-          <button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button>
+          <button class="item-btn" data-action="sell" data-id="${item.id}" data-price="${item.price}">Sell</button>
         `;
         storeItems.appendChild(d);
       }
 
       document.getElementById('storeMenu').style.display = 'block';
+      updateUI();
     }
 
     function closeStore() { gameState.storeOpen = false; document.getElementById('storeMenu').style.display = 'none'; }
@@ -596,7 +587,7 @@
       itemOptions.innerHTML = '';
 
       for (const key of Object.keys(items)) {
-        if (inventory[key] <= 0) continue;
+        if ((inventory[key] || 0) <= 0) continue;
         const item = items[key];
         const icon = item.type === 'oxygen' ? '🫧' : '🔥';
         const detail = item.type === 'oxygen'
@@ -610,7 +601,7 @@
             <div class="item-name">${icon} ${item.name}</div>
             <div class="item-details">${detail}</div>
           </div>
-          <button class="item-btn" onclick="useItem('${key}')">Use</button>
+          <button class="item-btn" data-action="use" data-id="${key}">Use</button>
         `;
         itemOptions.appendChild(d);
       }
@@ -621,60 +612,39 @@
 
     function closeItemMenu() { gameState.itemMenuOpen = false; document.getElementById('itemMenu').style.display = 'none'; }
 
-    function buyItem(id, price) {
-      if (inventory.money < price) return alert('Not enough money!');
-      inventory.money -= price;
-      inventory[id]++;
-      updateUI();
-      openStore();
-    }
-
-    function sellItem(id, price) {
-      if (inventory[id] <= 0) return;
-      inventory[id]--;
-      inventory.money += price;
-      updateUI();
-      openStore();
-    }
-
-    function useItem(key) {
-      if (inventory[key] <= 0) return;
-      inventory[key]--;
-
-      const item = items[key];
-      if (item.type === 'oxygen') {
-        player.oxygen = Math.min(100, player.oxygen + 45);
-      } else {
-        activeHeatItems.push({ type: key, duration: item.duration, start: performance.now() / 1000 });
-        player.temperature = Math.min(player.maxTemperature, player.temperature + 40);
-      }
-
-      updateUI();
-      closeItemMenu();
-    }
-
     function setTool(tool) {
       player.currentTool = tool;
       document.getElementById('toolBtn').textContent = tool === 'axe' ? '🔨 TOOL (1/2)' : '⛏️ TOOL (2/2)';
       updateUI();
     }
 
+    // Event delegation FIX for buy/sell/use generated buttons
+    document.addEventListener('click', (e) => {
+      const btnEl = e.target.closest('button.item-btn');
+      if (!btnEl) return;
+
+      const action = btnEl.dataset.action;
+      const id = btnEl.dataset.id;
+      const price = Number(btnEl.dataset.price || 0);
+
+      if (action === 'buy') buyItem(id, price);
+      if (action === 'sell') sellItem(id, price);
+      if (action === 'use') useItem(id);
+    });
+
     function updateUI() {
       const h = getHeightMeters();
       document.getElementById('heightValue').textContent = h;
       document.getElementById('zoneValue').textContent = zoneNameByAlt(h);
-
       document.getElementById('money').textContent = inventory.money;
       document.getElementById('tempValue').textContent = Math.floor(player.temperature);
       document.getElementById('oxygenValue').textContent = Math.floor(player.oxygen);
-
       document.getElementById('woodCount').textContent = inventory.wood;
       document.getElementById('stoneCount').textContent = inventory.stone;
       document.getElementById('hotPocketCount').textContent = inventory.hotPocket;
       document.getElementById('heatLampCount').textContent = inventory.heatLamp;
       document.getElementById('thermalBlanketCount').textContent = inventory.thermalBlanket;
       document.getElementById('oxygenTankCount').textContent = inventory.oxygenTank;
-
       document.getElementById('toolDisplay').textContent = player.currentTool === 'axe' ? 'Axe' : 'Pickaxe';
       document.getElementById('nearShopHint').textContent = isNearShop() ? 'YES' : 'No';
       document.getElementById('campHint').textContent = camps.some(c => c.reached) ? 'Yes' : 'No';
@@ -706,7 +676,6 @@
         if (gameState.itemMenuOpen) closeItemMenu();
       }
     });
-
     document.addEventListener('keyup', (e) => {
       keys[e.key] = false;
       if (e.key === 'ArrowDown') actionDown = false;
@@ -714,8 +683,8 @@
 
     function bindHoldButton(id, key) {
       const el = document.getElementById(id);
-      const on = (e)=>{ e.preventDefault(); touchControls[key] = true; };
-      const off = (e)=>{ e.preventDefault(); touchControls[key] = false; };
+      const on = (e)=>{ if (e) e.preventDefault(); touchControls[key] = true; };
+      const off = (e)=>{ if (e) e.preventDefault(); touchControls[key] = false; };
       el.addEventListener('touchstart', on, { passive: false });
       el.addEventListener('touchend', off, { passive: false });
       el.addEventListener('touchcancel', off, { passive: false });
@@ -732,210 +701,6 @@
     document.getElementById('mineBtn').addEventListener('click', tryMineOrChop);
     document.getElementById('useBtn').addEventListener('click', openItemMenu);
     document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
-    canvas.addEventListener('click', () => {
-      if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
-    });
-
-    function drawTerrain() {
-      const altitude = getHeightMeters();
-      const coldFactor = clamp((altitude - 1200) / 3800, 0, 1);
-
-      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
-      sky.addColorStop(0, `rgba(${Math.floor(150 - 40 * coldFactor)}, ${Math.floor(195 - 30 * coldFactor)}, ${Math.floor(235 - 10 * coldFactor)}, 1)`);
-      sky.addColorStop(1, `rgba(${Math.floor(220 - 30 * coldFactor)}, ${Math.floor(238 - 20 * coldFactor)}, 255, 1)`);
-      ctx.fillStyle = sky;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.save();
-      ctx.globalAlpha = 0.24;
-      ctx.fillStyle = '#9fb5c8';
-      const par = camera.x * 0.18;
-      for (let i = -2; i < 14; i++) {
-        const bx = i * 260 - (par % 260);
-        ctx.beginPath();
-        ctx.moveTo(bx, canvas.height);
-        ctx.lineTo(bx + 130, canvas.height - 220 - (i % 2) * 45);
-        ctx.lineTo(bx + 260, canvas.height);
-        ctx.closePath();
-        ctx.fill();
-      }
-      ctx.restore();
-
-      ctx.beginPath();
-      const first = terrainPoints[0];
-      ctx.moveTo(first.x - camera.x, canvas.height + 250);
-      for (const p of terrainPoints) ctx.lineTo(p.x - camera.x, p.y - camera.y);
-      const last = terrainPoints[terrainPoints.length - 1];
-      ctx.lineTo(last.x - camera.x, canvas.height + 250);
-      ctx.closePath();
-
-      const mGrad = ctx.createLinearGradient(0, -camera.y, 0, WORLD_HEIGHT - camera.y);
-      mGrad.addColorStop(0.00, '#f6fbff');
-      mGrad.addColorStop(0.20, '#edf5fc');
-      mGrad.addColorStop(0.42, '#d4e0ea');
-      mGrad.addColorStop(0.72, '#9ba8b3');
-      mGrad.addColorStop(1.00, '#6f7d88');
-      ctx.fillStyle = mGrad;
-      ctx.fill();
-
-      ctx.beginPath();
-      ctx.moveTo(first.x - camera.x, first.y - camera.y);
-      for (const p of terrainPoints) ctx.lineTo(p.x - camera.x, p.y - camera.y);
-      ctx.strokeStyle = '#d9e5ef';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-
-      ctx.save();
-      ctx.beginPath();
-      let startedSnow = false;
-      for (const p of terrainPoints) {
-        const worldAlt = WORLD_HEIGHT - p.y;
-        if (worldAlt > 3000) {
-          const sx = p.x - camera.x;
-          const sy = p.y - camera.y;
-          if (!startedSnow) { ctx.moveTo(sx, sy); startedSnow = true; }
-          else ctx.lineTo(sx, sy);
-        }
-      }
-      if (startedSnow) {
-        ctx.lineTo(WORLD_WIDTH - camera.x, -camera.y);
-        ctx.lineTo(0 - camera.x, -camera.y);
-        ctx.closePath();
-        ctx.fillStyle = 'rgba(255,255,255,0.42)';
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-
-    function drawTrees() {
-      for (const t of trees) {
-        if (t.chopped) continue;
-        const sx = t.x - camera.x;
-        const sy = t.yBottom - t.height - camera.y;
-        if (sx < -100 || sx > canvas.width + 100) continue;
-
-        ctx.fillStyle = '#8b4513';
-        ctx.fillRect(sx + t.width * 0.38, sy + t.height * 0.45, t.width * 0.24, t.height * 0.55);
-        ctx.fillStyle = '#2e8b57';
-        ctx.beginPath();
-        ctx.arc(sx + t.width * 0.5, sy + t.height * 0.35, t.width * 0.45, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function drawRocks() {
-      for (const r of rocks) {
-        if (r.mined) continue;
-        const sx = r.x - camera.x;
-        const sy = r.yBottom - r.height - camera.y;
-        if (sx < -100 || sx > canvas.width + 100) continue;
-
-        ctx.fillStyle = '#7f8a93';
-        ctx.beginPath();
-        ctx.ellipse(sx + r.width * 0.5, sy + r.height * 0.6, r.width * 0.5, r.height * 0.6, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = '#5f6a74';
-        ctx.fillRect(sx + r.width * 0.25, sy + r.height * 0.45, r.width * 0.4, r.height * 0.25);
-      }
-    }
-
-    function drawShopsAndCamps() {
-      for (const s of shops) {
-        const sx = s.x - camera.x;
-        const sy = s.yBottom - s.height - camera.y;
-        if (sx < -120 || sx > canvas.width + 120) continue;
-
-        ctx.fillStyle = '#8b4513';
-        ctx.fillRect(sx, sy, s.width, s.height);
-        ctx.fillStyle = '#d2691e';
-        ctx.fillRect(sx + 4, sy + 4, s.width - 8, s.height - 8);
-        ctx.fillStyle = '#fff';
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('🛍️', sx + s.width * 0.5, sy + 38);
-      }
-
-      for (const c of camps) {
-        const sx = c.x - camera.x;
-        const sy = c.yBottom - c.height - camera.y;
-        if (sx < -120 || sx > canvas.width + 120) continue;
-
-        ctx.fillStyle = c.reached ? '#4caf50' : '#795548';
-        ctx.fillRect(sx, sy, c.width, c.height);
-        ctx.fillStyle = '#e0c28c';
-        ctx.beginPath();
-        ctx.moveTo(sx - 5, sy);
-        ctx.lineTo(sx + c.width + 5, sy);
-        ctx.lineTo(sx + c.width / 2, sy - 20);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.fillStyle = '#fff';
-        ctx.font = '14px Arial';
-        ctx.fillText('⛺', sx + c.width * 0.5, sy + 24);
-      }
-    }
-
-    function drawAvalanches() {
-      for (const a of avalanches) {
-        const sx = a.x - camera.x;
-        const sy = a.y - camera.y;
-        ctx.beginPath();
-        ctx.arc(sx, sy, a.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(240,248,255,0.9)';
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(sx + a.radius * 0.25, sy - a.radius * 0.2, a.radius * 0.45, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(220,235,248,0.85)';
-        ctx.fill();
-      }
-    }
-
-    function drawPlayer() {
-      const sx = player.x - camera.x;
-      const sy = player.y - camera.y;
-
-      let color = '#ffff00';
-      if (player.temperature < 50) color = '#0066ff';
-      else if (player.temperature > 180) color = '#ff3300';
-
-      ctx.fillStyle = color;
-      ctx.fillRect(sx + 10, sy + 5, 10, 10);
-      ctx.fillRect(sx + 10, sy + 15, 10, 15);
-      ctx.fillRect(sx + 5, sy + 18, 20, 5);
-      ctx.fillRect(sx + 10, sy + 30, 5, 15);
-      ctx.fillRect(sx + 15, sy + 30, 5, 15);
-    }
-
-    function drawWeatherOverlays() {
-      const alt = getHeightMeters();
-      const windStrength = clamp((alt - 2200) / 3500, 0, 1);
-
-      if (windStrength > 0) {
-        ctx.save();
-        ctx.globalAlpha = 0.08 + windStrength * 0.10;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < 28; i++) {
-          const y = (i * 29 + performance.now() * 0.04) % (canvas.height + 40) - 20;
-          const x = (i * 67 + performance.now() * 0.12) % (canvas.width + 120) - 60;
-          ctx.beginPath();
-          ctx.moveTo(x, y);
-          ctx.lineTo(x + 40 + windStrength * 70, y + 3);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
-
-      if (alt > 4200) {
-        const fogAlpha = clamp((alt - 4200) / 2200, 0.06, 0.22);
-        const fog = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.5);
-        fog.addColorStop(0, `rgba(255,255,255,${fogAlpha})`);
-        fog.addColorStop(1, 'rgba(255,255,255,0)');
-        ctx.fillStyle = fog;
-        ctx.fillRect(0, 0, canvas.width, canvas.height * 0.6);
-      }
-    }
 
     function update(dt, nowSec) {
       if (deathCooldown > 0) deathCooldown -= dt;
@@ -943,22 +708,17 @@
 
       if (gamepadState.toolPressed) setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
       if (gamepadState.usePressed) {
-        if (gameState.itemMenuOpen) closeItemMenu();
-        else openItemMenu();
+        if (gameState.itemMenuOpen) closeItemMenu(); else openItemMenu();
       }
-      if (gamepadState.minePressed && !gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
+      if (gamepadState.minePressed) tryMineOrChop();
       if (gamepadState.downPressed && !gameState.storeOpen && !gameState.itemMenuOpen) tryOpenShop();
 
       if (!gameState.storeOpen && !gameState.itemMenuOpen) {
         if (keys['ArrowLeft'] || keys['a'] || keys['A'] || touchControls.left || gamepadState.left) player.targetVx = -PLAYER_SPEED;
         if (keys['ArrowRight'] || keys['d'] || keys['D'] || touchControls.right || gamepadState.right) player.targetVx = PLAYER_SPEED;
 
-        const jumpPressed = (keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' '] || touchControls.jump || gamepadState.jumpPressed);
-        if (jumpPressed && !player.isJumping) {
-          player.vy = JUMP_POWER;
-          player.isJumping = true;
-          touchControls.jump = false;
-        }
+        const jumpPressed = keys['ArrowUp'] || keys['w'] || keys['W'] || keys[' '] || touchControls.jump || gamepadState.jumpPressed;
+        if (jumpPressed && !player.isJumping) { player.vy = JUMP_POWER; player.isJumping = true; touchControls.jump = false; }
 
         const downPressed = !!keys['ArrowDown'];
         if (downPressed && !actionDown) tryOpenShop();
@@ -971,21 +731,15 @@
       player.targetVx = 0;
       player.vy += GRAVITY * (dt * 60);
 
-      player.x += player.vx * (dt * 60);
-      player.y += player.vy * (dt * 60);
-
-      player.x = clamp(player.x, 0, WORLD_WIDTH - player.width);
-      player.y = clamp(player.y, 0, WORLD_HEIGHT - player.height);
+      player.x = clamp(player.x + player.vx * (dt * 60), 0, WORLD_WIDTH - player.width);
+      player.y = clamp(player.y + player.vy * (dt * 60), 0, WORLD_HEIGHT - player.height);
 
       terrainCollisionAndSlip(dt);
 
       player.temperature -= BASE_TEMP_DECAY_PER_SEC * dt;
       activeHeatItems = activeHeatItems.filter(it => {
         const elapsed = nowSec - it.start;
-        if (elapsed < it.duration) {
-          player.temperature += 0.15 * (dt * 60);
-          return true;
-        }
+        if (elapsed < it.duration) { player.temperature += 0.15 * (dt * 60); return true; }
         return false;
       });
 
@@ -1018,12 +772,94 @@
 
       const targetCamX = player.x - canvas.width * 0.45;
       const targetCamY = player.y - canvas.height * 0.55;
-      camera.x += (targetCamX - camera.x) * Math.min(1, dt * 6);
-      camera.y += (targetCamY - camera.y) * Math.min(1, dt * 6);
-      camera.x = clamp(camera.x, 0, WORLD_WIDTH - canvas.width);
-      camera.y = clamp(camera.y, 0, WORLD_HEIGHT - canvas.height);
+      camera.x = clamp(camera.x + (targetCamX - camera.x) * Math.min(1, dt * 6), 0, WORLD_WIDTH - canvas.width);
+      camera.y = clamp(camera.y + (targetCamY - camera.y) * Math.min(1, dt * 6), 0, WORLD_HEIGHT - canvas.height);
 
       updateUI();
+    }
+
+    function drawTerrain() {
+      const altitude = getHeightMeters();
+      const coldFactor = clamp((altitude - 1200) / 3800, 0, 1);
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, `rgba(${Math.floor(150 - 40 * coldFactor)}, ${Math.floor(195 - 30 * coldFactor)}, ${Math.floor(235 - 10 * coldFactor)}, 1)`);
+      sky.addColorStop(1, `rgba(${Math.floor(220 - 30 * coldFactor)}, ${Math.floor(238 - 20 * coldFactor)}, 255, 1)`);
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.beginPath();
+      const first = terrainPoints[0];
+      ctx.moveTo(first.x - camera.x, canvas.height + 250);
+      for (const p of terrainPoints) ctx.lineTo(p.x - camera.x, p.y - camera.y);
+      const last = terrainPoints[terrainPoints.length - 1];
+      ctx.lineTo(last.x - camera.x, canvas.height + 250);
+      ctx.closePath();
+
+      const mGrad = ctx.createLinearGradient(0, -camera.y, 0, WORLD_HEIGHT - camera.y);
+      mGrad.addColorStop(0.00, '#f6fbff'); mGrad.addColorStop(0.20, '#edf5fc');
+      mGrad.addColorStop(0.42, '#d4e0ea'); mGrad.addColorStop(0.72, '#9ba8b3');
+      mGrad.addColorStop(1.00, '#6f7d88');
+      ctx.fillStyle = mGrad;
+      ctx.fill();
+    }
+
+    function drawTrees() {
+      for (const t of trees) {
+        if (t.chopped) continue;
+        const sx = t.x - camera.x, sy = t.yBottom - t.height - camera.y;
+        if (sx < -100 || sx > canvas.width + 100) continue;
+        ctx.fillStyle = '#8b4513';
+        ctx.fillRect(sx + t.width * 0.38, sy + t.height * 0.45, t.width * 0.24, t.height * 0.55);
+        ctx.fillStyle = '#2e8b57';
+        ctx.beginPath(); ctx.arc(sx + t.width * 0.5, sy + t.height * 0.35, t.width * 0.45, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    function drawRocks() {
+      for (const r of rocks) {
+        if (r.mined) continue;
+        const sx = r.x - camera.x, sy = r.yBottom - r.height - camera.y;
+        if (sx < -100 || sx > canvas.width + 100) continue;
+        ctx.fillStyle = '#7f8a93';
+        ctx.beginPath(); ctx.ellipse(sx + r.width * 0.5, sy + r.height * 0.6, r.width * 0.5, r.height * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+
+    function drawShopsAndCamps() {
+      for (const s of shops) {
+        const sx = s.x - camera.x, sy = s.yBottom - s.height - camera.y;
+        if (sx < -120 || sx > canvas.width + 120) continue;
+        ctx.fillStyle = '#8b4513'; ctx.fillRect(sx, sy, s.width, s.height);
+        ctx.fillStyle = '#d2691e'; ctx.fillRect(sx + 4, sy + 4, s.width - 8, s.height - 8);
+        ctx.fillStyle = '#fff'; ctx.font = '20px Arial'; ctx.textAlign = 'center';
+        ctx.fillText('🛍️', sx + s.width * 0.5, sy + 38);
+      }
+
+      for (const c of camps) {
+        const sx = c.x - camera.x, sy = c.yBottom - c.height - camera.y;
+        if (sx < -120 || sx > canvas.width + 120) continue;
+        ctx.fillStyle = c.reached ? '#4caf50' : '#795548';
+        ctx.fillRect(sx, sy, c.width, c.height);
+      }
+    }
+
+    function drawAvalanches() {
+      for (const a of avalanches) {
+        const sx = a.x - camera.x, sy = a.y - camera.y;
+        ctx.beginPath(); ctx.arc(sx, sy, a.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(240,248,255,0.9)'; ctx.fill();
+      }
+    }
+
+    function drawPlayer() {
+      const sx = player.x - camera.x, sy = player.y - camera.y;
+      let color = '#ffff00'; if (player.temperature < 50) color = '#0066ff'; else if (player.temperature > 180) color = '#ff3300';
+      ctx.fillStyle = color;
+      ctx.fillRect(sx + 10, sy + 5, 10, 10);
+      ctx.fillRect(sx + 10, sy + 15, 10, 15);
+      ctx.fillRect(sx + 5, sy + 18, 20, 5);
+      ctx.fillRect(sx + 10, sy + 30, 5, 15);
+      ctx.fillRect(sx + 15, sy + 30, 5, 15);
     }
 
     function render() {
@@ -1033,41 +869,16 @@
       drawShopsAndCamps();
       drawAvalanches();
       drawPlayer();
-      drawWeatherOverlays();
     }
 
     function loop(nowMs) {
       const dt = Math.min(0.05, (nowMs - lastTime) / 1000 || 0.016);
       lastTime = nowMs;
       const nowSec = nowMs / 1000;
-
       update(dt, nowSec);
       render();
       requestAnimationFrame(loop);
     }
-
-    function bindHoldButton(id, key) {
-      const el = document.getElementById(id);
-      const on = (e)=>{ e.preventDefault(); touchControls[key] = true; };
-      const off = (e)=>{ e.preventDefault(); touchControls[key] = false; };
-      el.addEventListener('touchstart', on, { passive: false });
-      el.addEventListener('touchend', off, { passive: false });
-      el.addEventListener('touchcancel', off, { passive: false });
-      el.addEventListener('mousedown', on);
-      el.addEventListener('mouseup', off);
-      el.addEventListener('mouseleave', off);
-    }
-    bindHoldButton('leftBtn', 'left');
-    bindHoldButton('rightBtn', 'right');
-    bindHoldButton('jumpBtn', 'jump');
-
-    document.getElementById('downBtn').addEventListener('click', tryOpenShop);
-    document.getElementById('mineBtn').addEventListener('click', tryMineOrChop);
-    document.getElementById('useBtn').addEventListener('click', openItemMenu);
-    document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
-    canvas.addEventListener('click', () => {
-      if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
-    });
 
     document.getElementById('startBtn').addEventListener('click', () => {
       if (started) return;
@@ -1094,11 +905,13 @@
 
     resizeCanvas();
 
+    // expose globals used by inline HTML + safety
     window.closeStore = closeStore;
     window.closeItemMenu = closeItemMenu;
     window.buyItem = buyItem;
     window.sellItem = sellItem;
     window.useItem = useItem;
+    window.tryMineOrChop = tryMineOrChop;
   </script>
 </body>
 </html>
