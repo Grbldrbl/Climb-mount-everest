@@ -3,65 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mount Everest Climbing Game</title>
+    <title>Climb Mount Everest</title>
     <style>
-        /* Basic styles here */
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #eee;
-        }
-        #gameCanvas {
-            display: block;
-            margin: auto;
-            background: lightblue;
-        }
-        /* Add more styles as needed */
+        body { font-family: Arial, sans-serif; }
+        #store { display: flex; flex-direction: column; padding: 20px; border: 1px solid #ccc; margin: 10px; }
+        #inventory { padding: 20px; border: 1px solid #ccc; margin: 10px; }
+        .item { margin: 5px 0; }
     </style>
 </head>
 <body>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <h1>Welcome to Climb Mount Everest!</h1>
+    <h2>Store</h2>
+    <div id="store">
+        <h3>Available Items</h3>
+        <div class="item">Heat Item 1: <button onclick="buyItem('Heat Item 1', 50)">Buy for 50 Coins</button></div>
+        <div class="item">Heat Item 2: <button onclick="buyItem('Heat Item 2', 100)">Buy for 100 Coins</button></div>
+    </div>
+    <h2>Inventory</h2>
+    <div id="inventory">
+        <h3>Your Items</h3>
+        <div id="itemList"></div>
+    </div>
+    <h2>Mining Tools</h2>
+    <div class="item">Axe: <button onclick="useTool('axe')">Use</button></div>
+    <div class="item">Pickaxe: <button onclick="useTool('pickaxe')">Use</button></div>
+    <h2>Money Management</h2>
+    <p>You have <span id="money">100</span> Coins.</p>
+
     <script>
-        // Game Variables
-        let player, heatSystem, miningSystem, store, music;
+        let money = 100;
+        let inventory = [];
 
-        // Initialize the Game
-        function init() {
-            // Initialization code
-            player = { x: 100, y: 100, controls: 'desktop' };
-            heatSystem = { temperature: 20 };
-            miningSystem = { resources: [] };
-            store = {};
-            music = new Audio('path/to/music.mp3');
-            setupControls();
-            // Start game loop
-            gameLoop();
-        }
-
-        // Control setup
-        function setupControls() {
-            // Desktop and mobile controls setup
-            document.addEventListener('keydown', handleKeyPress);
-            // Add mobile joystick setup here
-        }
-
-        // Game Loop
-        function gameLoop() {
-            // Main game logic and rendering
-            requestAnimationFrame(gameLoop);
-            // Update game state and render
-        }
-
-        // Handle keyboard input
-        function handleKeyPress(event) {
-            if (event.code === 'ArrowUp') {
-                player.y -= 10;
+        function buyItem(item, cost) {
+            if (money >= cost) {
+                money -= cost;
+                inventory.push(item);
+                document.getElementById('money').innerText = money;
+                updateInventory();
+                alert('Purchased ' + item);
+            } else {
+                alert('Not enough money!');
             }
-            // Add more controls
         }
 
-        // Entry point
-        window.onload = init;
+        function updateInventory() {
+            const list = document.getElementById('itemList');
+            list.innerHTML = '';
+            inventory.forEach((item) => {
+                const listItem = document.createElement('div');
+                listItem.innerText = item;
+                list.appendChild(listItem);
+            });
+        }
+
+        function useTool(tool) {
+            alert('Used ' + tool);
+            // Add mining logic here
+        }
     </script>
 </body>
 </html>
