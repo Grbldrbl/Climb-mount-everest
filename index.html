@@ -879,19 +879,44 @@
             player.x += player.velocityX;
             player.y += player.velocityY;
 
-            // Platform collision
+            // Platform collision detection
             let onPlatform = false;
             platforms.forEach(platform => {
+                // Check if player is above platform and falling
                 if (player.velocityY >= 0 &&
                     player.y + player.height >= platform.y &&
-                    player.y + player.height <= platform.y + platform.height + 5 &&
+                    player.y + player.height <= platform.y + platform.height + 10 &&
                     player.x + player.width > platform.x &&
                     player.x < platform.x + platform.width) {
                     
+                    // Land on platform
                     player.y = platform.y - player.height;
                     player.velocityY = 0;
                     player.isJumping = false;
                     onPlatform = true;
+                }
+
+                // Prevent falling through from sides
+                if (!onPlatform) {
+                    // Check left collision
+                    if (player.velocityX > 0 &&
+                        player.x + player.width >= platform.x &&
+                        player.x + player.width <= platform.x + 20 &&
+                        player.y + player.height > platform.y &&
+                        player.y < platform.y + platform.height) {
+                        player.x = platform.x - player.width;
+                        player.velocityX = 0;
+                    }
+
+                    // Check right collision
+                    if (player.velocityX < 0 &&
+                        player.x <= platform.x + platform.width &&
+                        player.x >= platform.x + platform.width - 20 &&
+                        player.y + player.height > platform.y &&
+                        player.y < platform.y + platform.height) {
+                        player.x = platform.x + platform.width;
+                        player.velocityX = 0;
+                    }
                 }
             });
 
@@ -906,14 +931,16 @@
                 }
             });
 
-            // Temperature
-            player.temperature -= 0.05; // Decrease over time
+            // Temperature - 4 minute freeze time = 240 seconds
+            // Temperature decreases from 100 to 0 in 240 seconds
+            // At 60 FPS: 100 / (240 * 60) = 0.00694 per frame
+            player.temperature -= 0.00694;
             
             // Heat items boost
             activeHeatItems = activeHeatItems.filter(item => {
                 const elapsed = (Date.now() - item.startTime) / 1000;
                 if (elapsed < item.duration) {
-                    player.temperature += 0.1; // Restore heat
+                    player.temperature += 0.15; // Restore heat faster
                     return true;
                 }
                 return false;
@@ -953,6 +980,10 @@
                 if (screenY > -100 && screenY < canvas.height + 100) {
                     const sprite = generatePlatformSprite(platform.width, platform.height, platform.type);
                     ctx.drawImage(sprite, platform.x, screenY);
+
+                    // Draw hitbox for debugging (optional)
+                    // ctx.strokeStyle = 'red';
+                    // ctx.strokeRect(platform.x, screenY, platform.width, platform.height);
                 }
             });
 
