@@ -5,61 +5,1003 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Climb Mount Everest</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        #store { display: flex; flex-direction: column; padding: 20px; border: 1px solid #ccc; margin: 10px; }
-        #inventory { padding: 20px; border: 1px solid #ccc; margin: 10px; }
-        .item { margin: 5px 0; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            overflow: hidden;
+        }
+
+        #menu {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        #menu h1 {
+            color: white;
+            font-size: 48px;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        #menu .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        #menu label {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        #musicUrl {
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            width: 400px;
+            max-width: 90vw;
+        }
+
+        #startBtn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        #startBtn:hover {
+            background: #45a049;
+        }
+
+        #gameContainer {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            display: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        #temperature {
+            width: 200px;
+            height: 20px;
+            background: #333;
+            border: 2px solid white;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        #temperatureBar {
+            height: 100%;
+            background: linear-gradient(90deg, blue, green, yellow, red);
+            width: 100%;
+            transition: width 0.1s;
+        }
+
+        #inventory {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 5px;
+            z-index: 100;
+        }
+
+        #storeMenu, #itemMenu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            padding: 30px;
+            border-radius: 10px;
+            color: white;
+            z-index: 500;
+            max-height: 80vh;
+            overflow-y: auto;
+            display: none;
+            min-width: 400px;
+        }
+
+        .store-item, .item-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .store-item canvas, .item-option canvas {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            background: rgba(0,0,0,0.5);
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .item-details {
+            font-size: 12px;
+            color: #aaa;
+        }
+
+        .item-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button.item-btn {
+            padding: 8px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        button.item-btn:hover {
+            background: #45a049;
+        }
+
+        button.close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button.close-btn:hover {
+            background: #da190b;
+        }
+
+        #mobileJoystick {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.5);
+            border-radius: 50%;
+            display: none;
+            z-index: 200;
+        }
+
+        #joystickKnob {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.5);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .active-heat-items {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .heat-item-timer {
+            background: rgba(255,100,100,0.5);
+            padding: 8px 12px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid rgba(255,100,100,0.8);
+        }
+
+        @media (max-width: 768px) {
+            #musicUrl {
+                width: 90vw;
+            }
+
+            #mobileJoystick {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>Welcome to Climb Mount Everest!</h1>
-    <h2>Store</h2>
-    <div id="store">
-        <h3>Available Items</h3>
-        <div class="item">Heat Item 1: <button onclick="buyItem('Heat Item 1', 50)">Buy for 50 Coins</button></div>
-        <div class="item">Heat Item 2: <button onclick="buyItem('Heat Item 2', 100)">Buy for 100 Coins</button></div>
+    <div id="menu">
+        <h1>🏔️ Climb Mount Everest</h1>
+        <div class="input-group">
+            <label for="musicUrl">Enter Music URL:</label>
+            <input type="text" id="musicUrl" placeholder="https://example.com/music.mp3">
+            <button id="startBtn">Start Game</button>
+        </div>
     </div>
-    <h2>Inventory</h2>
-    <div id="inventory">
-        <h3>Your Items</h3>
-        <div id="itemList"></div>
+
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="ui">
+            <div>Area: <span id="areaLevel">1</span>/4</div>
+            <div>Money: $<span id="money">100</span></div>
+            <div>Temperature: <span id="tempValue">50</span>°C</div>
+            <div id="temperature">
+                <div id="temperatureBar" style="width: 100%;"></div>
+            </div>
+            <div>Tool: <span id="toolDisplay">Axe</span></div>
+            <div class="active-heat-items" id="activeHeatItems"></div>
+        </div>
+
+        <div id="inventory">
+            <h3>Inventory</h3>
+            <div>Wood: <span id="woodCount">0</span></div>
+            <div>Stone: <span id="stoneCount">0</span></div>
+            <div>Hot Pocket: <span id="hotPocketCount">0</span></div>
+            <div>Heat Lamp: <span id="heatLampCount">0</span></div>
+            <div>Thermal Blanket: <span id="thermalBlanketCount">0</span></div>
+        </div>
+
+        <div id="storeMenu">
+            <button class="close-btn" onclick="closeStore()">✕</button>
+            <h2>🛍️ Store</h2>
+            <div id="storeItems"></div>
+        </div>
+
+        <div id="itemMenu">
+            <button class="close-btn" onclick="closeItemMenu()">✕</button>
+            <h2>🔥 Heat Items</h2>
+            <div id="itemOptions"></div>
+        </div>
+
+        <div id="mobileJoystick">
+            <div id="joystickKnob"></div>
+        </div>
     </div>
-    <h2>Mining Tools</h2>
-    <div class="item">Axe: <button onclick="useTool('axe')">Use</button></div>
-    <div class="item">Pickaxe: <button onclick="useTool('pickaxe')">Use</button></div>
-    <h2>Money Management</h2>
-    <p>You have <span id="money">100</span> Coins.</p>
 
     <script>
-        let money = 100;
-        let inventory = [];
+        // ==================== GAME STATE ====================
+        const gameState = {
+            menu: true,
+            storeOpen: false,
+            itemMenuOpen: false,
+            musicUrl: '',
+            music: null,
+        };
 
-        function buyItem(item, cost) {
-            if (money >= cost) {
-                money -= cost;
-                inventory.push(item);
-                document.getElementById('money').innerText = money;
-                updateInventory();
-                alert('Purchased ' + item);
+        const player = {
+            x: 100,
+            y: 300,
+            width: 30,
+            height: 50,
+            velocityX: 0,
+            velocityY: 0,
+            velocityXTarget: 0,
+            temperature: 50,
+            maxTemperature: 100,
+            isJumping: false,
+            currentTool: 'axe',
+            area: 1,
+        };
+
+        const inventory = {
+            wood: 0,
+            stone: 0,
+            hotPocket: 0,
+            heatLamp: 0,
+            thermalBlanket: 0,
+            money: 100,
+        };
+
+        const heatItems = {
+            hotPocket: { duration: 300, name: 'Hot Pocket', price: 50 },
+            heatLamp: { duration: 600, name: 'Heat Lamp', price: 100 },
+            thermalBlanket: { duration: 900, name: 'Thermal Blanket', price: 150 },
+        };
+
+        let activeHeatItems = [];
+        let platforms = [];
+        let resources = [];
+        let stores = [];
+        let camera = { y: 0 };
+        let keys = {};
+        let gamepadStates = {};
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // ==================== CANVAS SETUP ====================
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==================== SPRITE GENERATION ====================
+        function generatePlayerSprite(temperature) {
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 30;
+            spriteCanvas.height = 50;
+            const spriteCtx = spriteCanvas.getContext('2d');
+
+            // Color based on temperature
+            let color;
+            if (temperature < 20) color = '#0066ff'; // Cold - blue
+            else if (temperature > 80) color = '#ff3300'; // Hot - red
+            else color = '#ffff00'; // Normal - yellow
+
+            // Head
+            spriteCtx.fillStyle = color;
+            spriteCtx.fillRect(10, 5, 10, 10);
+
+            // Body
+            spriteCtx.fillRect(10, 15, 10, 15);
+
+            // Arms
+            spriteCtx.fillRect(5, 18, 20, 5);
+
+            // Legs
+            spriteCtx.fillRect(10, 30, 5, 15);
+            spriteCtx.fillRect(15, 30, 5, 15);
+
+            return spriteCanvas;
+        }
+
+        function generatePlatformSprite(width, height, type = 'snow') {
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = width;
+            spriteCanvas.height = height;
+            const spriteCtx = spriteCanvas.getContext('2d');
+
+            if (type === 'snow') {
+                spriteCtx.fillStyle = '#f0f8ff';
+            } else {
+                spriteCtx.fillStyle = '#8b7355';
+            }
+            spriteCtx.fillRect(0, 0, width, height);
+
+            // Add texture
+            spriteCtx.fillStyle = type === 'snow' ? '#e0e8ff' : '#9b8365';
+            for (let i = 0; i < width; i += 10) {
+                for (let j = 0; j < height; j += 10) {
+                    if (Math.random() > 0.5) {
+                        spriteCtx.fillRect(i, j, 8, 8);
+                    }
+                }
+            }
+
+            return spriteCanvas;
+        }
+
+        function generateResourceSprite(type) {
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 40;
+            spriteCanvas.height = 40;
+            const spriteCtx = spriteCanvas.getContext('2d');
+
+            if (type === 'tree') {
+                // Tree
+                spriteCtx.fillStyle = '#8b4513';
+                spriteCtx.fillRect(15, 20, 10, 15);
+                spriteCtx.fillStyle = '#228b22';
+                spriteCtx.beginPath();
+                spriteCtx.arc(20, 15, 10, 0, Math.PI * 2);
+                spriteCtx.fill();
+            } else if (type === 'rock') {
+                // Rock
+                spriteCtx.fillStyle = '#808080';
+                spriteCtx.beginPath();
+                spriteCtx.arc(20, 20, 12, 0, Math.PI * 2);
+                spriteCtx.fill();
+                spriteCtx.fillStyle = '#606060';
+                spriteCtx.fillRect(15, 15, 10, 10);
+            }
+
+            return spriteCanvas;
+        }
+
+        function generateItemSprite(itemType) {
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = 40;
+            spriteCanvas.height = 40;
+            const spriteCtx = spriteCanvas.getContext('2d');
+
+            if (itemType === 'hotPocket') {
+                spriteCtx.fillStyle = '#ff6347';
+                spriteCtx.fillRect(10, 10, 20, 20);
+                spriteCtx.fillStyle = '#ff8c69';
+                spriteCtx.fillRect(13, 13, 14, 14);
+            } else if (itemType === 'heatLamp') {
+                spriteCtx.fillStyle = '#ffd700';
+                spriteCtx.beginPath();
+                spriteCtx.arc(20, 20, 10, 0, Math.PI * 2);
+                spriteCtx.fill();
+                spriteCtx.fillStyle = '#ffed4e';
+                spriteCtx.beginPath();
+                spriteCtx.arc(20, 20, 6, 0, Math.PI * 2);
+                spriteCtx.fill();
+            } else if (itemType === 'thermalBlanket') {
+                spriteCtx.fillStyle = '#ff1493';
+                spriteCtx.fillRect(8, 8, 24, 24);
+                spriteCtx.fillStyle = '#ff69b4';
+                spriteCtx.fillRect(12, 12, 16, 16);
+            }
+
+            return spriteCanvas;
+        }
+
+        function generateFogSprite(width, height) {
+            const spriteCanvas = document.createElement('canvas');
+            spriteCanvas.width = width;
+            spriteCanvas.height = height;
+            const spriteCtx = spriteCanvas.getContext('2d');
+
+            const gradient = spriteCtx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            spriteCtx.fillStyle = gradient;
+            spriteCtx.fillRect(0, 0, width, height);
+
+            return spriteCanvas;
+        }
+
+        // ==================== LEVEL GENERATION ====================
+        function generateLevel(area) {
+            platforms = [];
+            resources = [];
+            stores = [];
+
+            const levelHeight = 2000;
+            const startY = (area - 1) * levelHeight + canvas.height;
+
+            // Generate platforms
+            for (let i = 0; i < 15; i++) {
+                const y = startY - (i * 120);
+                const x = Math.sin(i * 0.5) * 200 + canvas.width / 2 - 100;
+                const width = 150 + Math.random() * 100;
+                const type = Math.random() > 0.7 ? 'rock' : 'snow';
+                platforms.push({ x, y, width, height: 30, type });
+
+                // Add resources
+                if (Math.random() > 0.5) {
+                    resources.push({
+                        x: x + Math.random() * width,
+                        y: y - 50,
+                        type: Math.random() > 0.5 ? 'tree' : 'rock',
+                        width: 40,
+                        height: 40,
+                    });
+                }
+            }
+
+            // Add store
+            const storeY = startY - 500;
+            stores.push({
+                x: canvas.width / 2 - 50,
+                y: storeY,
+                width: 60,
+                height: 60,
+                area: area,
+            });
+        }
+
+        // ==================== MENU HANDLING ====================
+        document.getElementById('startBtn').addEventListener('click', () => {
+            const musicUrl = document.getElementById('musicUrl').value;
+            gameState.musicUrl = musicUrl;
+
+            if (musicUrl) {
+                gameState.music = new Audio(musicUrl);
+                gameState.music.loop = true;
+                gameState.music.volume = 0.3;
+                gameState.music.play().catch(e => console.log('Audio play failed:', e));
+            }
+
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('gameContainer').style.display = 'block';
+            gameState.menu = false;
+
+            generateLevel(player.area);
+            gameLoop();
+        });
+
+        // ==================== INPUT HANDLING ====================
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+
+            if (e.key === '1') player.currentTool = 'axe';
+            if (e.key === '2') player.currentTool = 'pickaxe';
+            if (e.key === 'e' || e.key === 'E') openItemMenu();
+            if (e.key === 'Escape') {
+                if (gameState.storeOpen) closeStore();
+                if (gameState.itemMenuOpen) closeItemMenu();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Mobile touch controls
+        canvas.addEventListener('touchstart', handleTouchStart, false);
+        canvas.addEventListener('touchmove', handleTouchMove, false);
+        canvas.addEventListener('touchend', handleTouchEnd, false);
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+
+        function handleTouchStart(e) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        }
+
+        function handleTouchMove(e) {
+            // Mobile joystick simulation
+        }
+
+        function handleTouchEnd(e) {
+            // Handle touch mining
+            if (!gameState.storeOpen && !gameState.itemMenuOpen) {
+                const touch = e.changedTouches[0];
+                checkResourceClick(touch.clientX, touch.clientY);
+            }
+        }
+
+        // Mouse click for mining
+        canvas.addEventListener('click', (e) => {
+            if (!gameState.storeOpen && !gameState.itemMenuOpen) {
+                checkResourceClick(e.clientX, e.clientY);
+            }
+        });
+
+        function checkResourceClick(x, y) {
+            resources.forEach((resource, index) => {
+                const screenX = resource.x;
+                const screenY = resource.y - camera.y;
+
+                if (x > screenX && x < screenX + resource.width &&
+                    y > screenY && y < screenY + resource.height) {
+                    
+                    if (player.currentTool === 'axe' && resource.type === 'tree') {
+                        inventory.wood++;
+                        resources.splice(index, 1);
+                    } else if (player.currentTool === 'pickaxe' && resource.type === 'rock') {
+                        inventory.stone++;
+                        resources.splice(index, 1);
+                    }
+                }
+            });
+        }
+
+        // Gamepad support
+        window.addEventListener('gamepadconnected', (e) => {
+            console.log('Gamepad connected:', e.gamepad.id);
+        });
+
+        window.addEventListener('gamepaddisconnected', (e) => {
+            console.log('Gamepad disconnected');
+        });
+
+        function updateGamepadInput() {
+            const gamepads = navigator.getGamepads();
+            for (let i = 0; i < gamepads.length; i++) {
+                const gp = gamepads[i];
+                if (!gp) continue;
+
+                // Movement
+                const deadZone = 0.3;
+                if (Math.abs(gp.axes[0]) > deadZone) {
+                    player.velocityXTarget = gp.axes[0] * 5;
+                }
+
+                // Jump
+                if (gp.buttons[0].pressed) {
+                    if (!player.isJumping) {
+                        player.velocityY = -12;
+                        player.isJumping = true;
+                    }
+                }
+
+                // Tool selection
+                if (gp.buttons[2].pressed) player.currentTool = 'axe';
+                if (gp.buttons[3].pressed) player.currentTool = 'pickaxe';
+
+                // Action button (X/Y)
+                if (gp.buttons[2].pressed) openItemMenu();
+                if (gp.buttons[1].pressed) {
+                    if (gameState.storeOpen) closeStore();
+                    if (gameState.itemMenuOpen) closeItemMenu();
+                }
+            }
+        }
+
+        // ==================== STORE FUNCTIONS ====================
+        function openStore() {
+            gameState.storeOpen = true;
+            const storeMenu = document.getElementById('storeMenu');
+            const storeItems = document.getElementById('storeItems');
+            storeItems.innerHTML = '';
+
+            // Buy items
+            const buyItems = [
+                { id: 'hotPocket', name: 'Hot Pocket', price: 50, type: 'hotPocket' },
+                { id: 'heatLamp', name: 'Heat Lamp', price: 100, type: 'heatLamp' },
+                { id: 'thermalBlanket', name: 'Thermal Blanket', price: 150, type: 'thermalBlanket' },
+            ];
+
+            buyItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'store-item';
+                
+                const sprite = generateItemSprite(item.type);
+                const canvas = document.createElement('canvas');
+                canvas.width = 50;
+                canvas.height = 50;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(sprite, 0, 0);
+
+                itemDiv.innerHTML = `
+                    <div class="item-info">
+                        <div class="item-name">🔥 ${item.name}</div>
+                        <div class="item-details">Price: $${item.price}</div>
+                    </div>
+                    <div class="item-buttons">
+                        <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
+                    </div>
+                `;
+                itemDiv.insertBefore(canvas, itemDiv.firstChild);
+                storeItems.appendChild(itemDiv);
+            });
+
+            // Sell items
+            storeItems.innerHTML += '<hr style="margin: 20px 0; border: 1px solid #555;">';
+
+            const sellItems = [
+                { id: 'wood', name: 'Wood', price: 20 },
+                { id: 'stone', name: 'Stone', price: 30 },
+            ];
+
+            sellItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'store-item';
+                itemDiv.innerHTML = `
+                    <div class="item-info">
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id]}</div>
+                    </div>
+                    <div class="item-buttons">
+                        <button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button>
+                    </div>
+                `;
+                storeItems.appendChild(itemDiv);
+            });
+
+            storeMenu.style.display = 'block';
+        }
+
+        function closeStore() {
+            gameState.storeOpen = false;
+            document.getElementById('storeMenu').style.display = 'none';
+        }
+
+        function buyItem(itemId, price) {
+            if (inventory.money >= price) {
+                inventory.money -= price;
+                inventory[itemId]++;
+                updateUI();
             } else {
                 alert('Not enough money!');
             }
         }
 
-        function updateInventory() {
-            const list = document.getElementById('itemList');
-            list.innerHTML = '';
-            inventory.forEach((item) => {
-                const listItem = document.createElement('div');
-                listItem.innerText = item;
-                list.appendChild(listItem);
+        function sellItem(itemId, price) {
+            if (inventory[itemId] > 0) {
+                inventory.money += price;
+                inventory[itemId]--;
+                updateUI();
+            }
+        }
+
+        // ==================== ITEM MENU ====================
+        function openItemMenu() {
+            gameState.itemMenuOpen = true;
+            const itemMenu = document.getElementById('itemMenu');
+            const itemOptions = document.getElementById('itemOptions');
+            itemOptions.innerHTML = '';
+
+            Object.keys(heatItems).forEach(itemKey => {
+                if (inventory[itemKey] > 0) {
+                    const item = heatItems[itemKey];
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'item-option';
+
+                    const sprite = generateItemSprite(itemKey);
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 50;
+                    canvas.height = 50;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(sprite, 0, 0);
+
+                    itemDiv.innerHTML = `
+                        <div class="item-info">
+                            <div class="item-name">🔥 ${item.name}</div>
+                            <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[itemKey]}</div>
+                        </div>
+                        <div class="item-buttons">
+                            <button class="item-btn" onclick="useItem('${itemKey}')">Use</button>
+                        </div>
+                    `;
+                    itemDiv.insertBefore(canvas, itemDiv.firstChild);
+                    itemOptions.appendChild(itemDiv);
+                }
+            });
+
+            if (itemOptions.innerHTML === '') {
+                itemOptions.innerHTML = '<p style="color: #aaa;">No heat items available</p>';
+            }
+
+            itemMenu.style.display = 'block';
+        }
+
+        function closeItemMenu() {
+            gameState.itemMenuOpen = false;
+            document.getElementById('itemMenu').style.display = 'none';
+        }
+
+        function useItem(itemKey) {
+            if (inventory[itemKey] > 0) {
+                inventory[itemKey]--;
+                const item = heatItems[itemKey];
+                activeHeatItems.push({
+                    type: itemKey,
+                    duration: item.duration,
+                    startTime: Date.now(),
+                });
+                player.temperature = Math.min(player.temperature + 50, player.maxTemperature);
+                updateUI();
+                closeItemMenu();
+            }
+        }
+
+        // ==================== UPDATE UI ====================
+        function updateUI() {
+            document.getElementById('money').textContent = inventory.money;
+            document.getElementById('tempValue').textContent = Math.floor(player.temperature);
+            document.getElementById('woodCount').textContent = inventory.wood;
+            document.getElementById('stoneCount').textContent = inventory.stone;
+            document.getElementById('hotPocketCount').textContent = inventory.hotPocket;
+            document.getElementById('heatLampCount').textContent = inventory.heatLamp;
+            document.getElementById('thermalBlanketCount').textContent = inventory.thermalBlanket;
+            document.getElementById('toolDisplay').textContent = player.currentTool === 'axe' ? 'Axe' : 'Pickaxe';
+            document.getElementById('areaLevel').textContent = player.area;
+
+            const tempPercent = (player.temperature / player.maxTemperature) * 100;
+            document.getElementById('temperatureBar').style.width = tempPercent + '%';
+
+            // Update active heat items display
+            const activeHeatItemsDiv = document.getElementById('activeHeatItems');
+            activeHeatItemsDiv.innerHTML = '';
+            activeHeatItems.forEach(item => {
+                const remaining = Math.ceil(item.duration - (Date.now() - item.startTime) / 1000);
+                if (remaining > 0) {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'heat-item-timer';
+                    itemDiv.textContent = `${heatItems[item.type].name}: ${remaining}s`;
+                    activeHeatItemsDiv.appendChild(itemDiv);
+                }
             });
         }
 
-        function useTool(tool) {
-            alert('Used ' + tool);
-            // Add mining logic here
+        // ==================== GAME PHYSICS ====================
+        function updatePlayer() {
+            // Keyboard input
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                player.velocityXTarget = -5;
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                player.velocityXTarget = 5;
+            }
+            if ((keys[' '] || keys['w'] || keys['W']) && !player.isJumping) {
+                player.velocityY = -12;
+                player.isJumping = true;
+            }
+
+            // Update gamepad input
+            updateGamepadInput();
+
+            // Apply friction
+            player.velocityX += (player.velocityXTarget - player.velocityX) * 0.1;
+            player.velocityXTarget = 0;
+
+            // Gravity
+            player.velocityY += 0.5;
+
+            // Update position
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+
+            // Platform collision
+            let onPlatform = false;
+            platforms.forEach(platform => {
+                if (player.velocityY >= 0 &&
+                    player.y + player.height >= platform.y &&
+                    player.y + player.height <= platform.y + platform.height + 5 &&
+                    player.x + player.width > platform.x &&
+                    player.x < platform.x + platform.width) {
+                    
+                    player.y = platform.y - player.height;
+                    player.velocityY = 0;
+                    player.isJumping = false;
+                    onPlatform = true;
+                }
+            });
+
+            // Check store collision
+            stores.forEach(store => {
+                const dist = Math.hypot(player.x - store.x, player.y - store.y);
+                if (dist < 100) {
+                    // Show store prompt
+                    if (keys['e'] || keys['E']) {
+                        openStore();
+                    }
+                }
+            });
+
+            // Temperature
+            player.temperature -= 0.05; // Decrease over time
+            
+            // Heat items boost
+            activeHeatItems = activeHeatItems.filter(item => {
+                const elapsed = (Date.now() - item.startTime) / 1000;
+                if (elapsed < item.duration) {
+                    player.temperature += 0.1; // Restore heat
+                    return true;
+                }
+                return false;
+            });
+
+            player.temperature = Math.min(player.temperature, player.maxTemperature);
+            player.temperature = Math.max(0, player.temperature);
+
+            // Game over
+            if (player.temperature <= 0) {
+                alert('You froze! Game Over!');
+                location.reload();
+            }
+
+            // Check area progression
+            if (player.y < (player.area * 2000 - 2000)) {
+                player.area++;
+                generateLevel(player.area);
+            }
+
+            // Camera follow
+            camera.y = Math.max(0, player.y - canvas.height / 3);
+
+            // Keep player in bounds
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+        }
+
+        // ==================== RENDERING ====================
+        function render() {
+            ctx.fillStyle = '#e8f4f8';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw platforms
+            platforms.forEach(platform => {
+                const screenY = platform.y - camera.y;
+                if (screenY > -100 && screenY < canvas.height + 100) {
+                    const sprite = generatePlatformSprite(platform.width, platform.height, platform.type);
+                    ctx.drawImage(sprite, platform.x, screenY);
+                }
+            });
+
+            // Draw resources
+            resources.forEach(resource => {
+                const screenY = resource.y - camera.y;
+                if (screenY > -100 && screenY < canvas.height + 100) {
+                    const sprite = generateResourceSprite(resource.type);
+                    ctx.drawImage(sprite, resource.x, screenY);
+                }
+            });
+
+            // Draw stores
+            stores.forEach(store => {
+                const screenY = store.y - camera.y;
+                if (screenY > -100 && screenY < canvas.height + 100) {
+                    ctx.fillStyle = '#8b4513';
+                    ctx.fillRect(store.x, screenY, store.width, store.height);
+                    ctx.fillStyle = '#d2691e';
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('🛍️', store.x + store.width / 2, screenY + 35);
+                }
+            });
+
+            // Draw player
+            const playerScreenY = player.y - camera.y;
+            const playerSprite = generatePlayerSprite(player.temperature);
+            ctx.drawImage(playerSprite, player.x, playerScreenY);
+
+            // Draw fog
+            const fogSprite = generateFogSprite(canvas.width, canvas.height / 3);
+            ctx.drawImage(fogSprite, 0, 0);
+
+            // Draw UI elements
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.font = '14px Arial';
+            ctx.fillText(`Press E or X to use items`, 20, canvas.height - 60);
+            ctx.fillText(`Click resources to mine`, 20, canvas.height - 40);
+            ctx.fillText(`Press 1/2 to switch tools`, 20, canvas.height - 20);
+        }
+
+        // ==================== GAME LOOP ====================
+        function gameLoop() {
+            updatePlayer();
+            updateUI();
+            render();
+            requestAnimationFrame(gameLoop);
         }
     </script>
 </body>
-</html>
+    </html>
