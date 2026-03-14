@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Climb Mount Everest - Real Mountain</title>
+  <title>Climb Mount Everest - Long Real Mountain</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #1a1a2e; overflow: hidden; }
@@ -17,7 +17,7 @@
     #menu .input-group {
       display: flex; flex-direction: column; gap: 12px;
       background: rgba(255,255,255,0.13); border-radius: 10px; padding: 22px;
-      width: min(92vw, 540px); backdrop-filter: blur(8px);
+      width: min(92vw, 560px); backdrop-filter: blur(8px);
     }
     #menu label { color: #fff; font-weight: 700; }
     #musicUrl { padding: 12px; border: none; border-radius: 8px; font-size: 15px; }
@@ -34,8 +34,8 @@
       background: rgba(0,0,0,0.55); border-radius: 8px; padding: 12px;
       font-size: 13px;
     }
-    #ui { left: 10px; min-width: 290px; }
-    #inventory { right: 10px; min-width: 190px; }
+    #ui { left: 10px; min-width: 300px; }
+    #inventory { right: 10px; min-width: 210px; }
 
     .bar-wrap {
       width: 220px; height: 14px; background: #333;
@@ -94,7 +94,7 @@
     <h1>🏔️ Climb Mount Everest</h1>
     <div class="input-group">
       <label for="musicUrl">Enter Music URL (optional):</label>
-      <input type="text" id="musicUrl" placeholder="https://example.com/music.mp3">
+      <input type="text" id="musicUrl" placeholder="https://example.com/music.mp3" />
       <button id="startBtn">Start Game</button>
     </div>
   </div>
@@ -127,6 +127,7 @@
       <div>Hot Pocket: <span id="hotPocketCount">0</span></div>
       <div>Heat Lamp: <span id="heatLampCount">0</span></div>
       <div>Thermal Blanket: <span id="thermalBlanketCount">0</span></div>
+      <div>Oxygen Tank: <span id="oxygenTankCount">0</span></div>
     </div>
 
     <div id="storeMenu">
@@ -137,7 +138,7 @@
 
     <div id="itemMenu">
       <button class="close-btn" onclick="closeItemMenu()">✕</button>
-      <h2>🔥 Heat Items</h2>
+      <h2>🔥 Survival Items</h2>
       <div id="itemOptions"></div>
     </div>
 
@@ -147,15 +148,15 @@
       <button class="control-btn" id="jumpBtn">⬆️ JUMP</button>
       <button class="control-btn" id="downBtn">⬇️ SHOP</button>
       <button class="control-btn" id="mineBtn">⛏️ MINE/CHOP</button>
-      <button class="control-btn" id="useBtn">🔥 USE ITEM</button>
+      <button class="control-btn" id="useBtn">🎒 USE ITEM</button>
       <button class="control-btn" id="toolBtn">🔨 TOOL (1/2)</button>
     </div>
   </div>
 
   <script>
     // ============== Core ==============
-    const WORLD_WIDTH = 10000;
-    const WORLD_HEIGHT = 7900;
+    const WORLD_WIDTH = 22000;
+    const WORLD_HEIGHT = 8600;
 
     const GRAVITY = 0.56;
     const PLAYER_SPEED = 5;
@@ -164,9 +165,9 @@
     const FREEZE_SECONDS = 240;
     const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
 
-    const OXYGEN_START_ALT = 3000;
-    const OXYGEN_DRAIN_MAX = 8; // % per sec at extreme altitude
-    const OXYGEN_RECOVER = 10;  // % per sec at lower altitude
+    const OXYGEN_START_ALT = 3200;
+    const OXYGEN_DRAIN_MAX = 0.56; // ~3 minutes to 0 at max altitude
+    const OXYGEN_RECOVER = 6;
 
     const gameState = {
       menu: true,
@@ -179,30 +180,26 @@
     };
 
     const player = {
-      x: 260,
-      y: 0,
-      width: 30,
-      height: 50,
-      vx: 0,
-      vy: 0,
-      targetVx: 0,
+      x: 260, y: 0,
+      width: 30, height: 50,
+      vx: 0, vy: 0, targetVx: 0,
       isJumping: true,
-      temperature: 122,
-      maxTemperature: 212,
+      temperature: 122, maxTemperature: 212,
       oxygen: 100,
       currentTool: 'axe',
     };
 
     const inventory = {
       wood: 0, stone: 0,
-      hotPocket: 0, heatLamp: 0, thermalBlanket: 0,
+      hotPocket: 0, heatLamp: 0, thermalBlanket: 0, oxygenTank: 0,
       money: 100,
     };
 
-    const heatItems = {
-      hotPocket: { duration: 30, name: 'Hot Pocket', price: 50 },
-      heatLamp: { duration: 60, name: 'Heat Lamp', price: 100 },
-      thermalBlanket: { duration: 90, name: 'Thermal Blanket', price: 150 },
+    const items = {
+      hotPocket: { duration: 30, name: 'Hot Pocket', price: 50, type: 'temp' },
+      heatLamp: { duration: 60, name: 'Heat Lamp', price: 100, type: 'temp' },
+      thermalBlanket: { duration: 90, name: 'Thermal Blanket', price: 150, type: 'temp' },
+      oxygenTank: { duration: 0, name: 'Oxygen Tank', price: 120, type: 'oxygen' },
     };
 
     let activeHeatItems = [];
@@ -228,11 +225,7 @@
 
     // ============== Helpers ==============
     function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
-
-    function getHeightMeters() {
-      return Math.max(0, Math.floor((WORLD_HEIGHT - player.y) * 0.82 - 120));
-    }
-
+    function getHeightMeters() { return Math.max(0, Math.floor((WORLD_HEIGHT - player.y) * 0.82 - 120)); }
     function zoneNameByAlt(alt) {
       if (alt < 1300) return 'Forest Line';
       if (alt < 3000) return 'Snow Slope';
@@ -240,12 +233,11 @@
       if (alt < 6400) return 'Storm Ridge';
       return 'Death Zone';
     }
-
     function setControllerStatus(msg) {
       document.getElementById('controllerStatus').textContent = `Controller: ${msg}`;
     }
 
-    // ============== Gamepad (Switch friendly) ==============
+    // ============== Gamepad (Switch-friendly) ==============
     const gamepadState = {
       index: null, connected: false, name: '', prev: [],
       left: false, right: false,
@@ -317,10 +309,7 @@
     }
 
     // ============== Resize ==============
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
     window.addEventListener('resize', resizeCanvas);
 
     // ============== Terrain ==============
@@ -337,32 +326,37 @@
     function localSlope(worldX) {
       const y1 = getTerrainY(worldX - 30);
       const y2 = getTerrainY(worldX + 30);
-      return (y2 - y1) / 60; // rise/run
+      return (y2 - y1) / 60;
     }
 
     function generateWorld() {
-      terrainPoints.length = 0; trees.length = 0; rocks.length = 0; shops.length = 0; camps.length = 0; avalanches.length = 0;
+      terrainPoints.length = 0;
+      trees.length = 0;
+      rocks.length = 0;
+      shops.length = 0;
+      camps.length = 0;
+      avalanches.length = 0;
 
       const step = 40;
-      const baseY = WORLD_HEIGHT - 140;
-      const peakTargetY = 780;
+      const baseY = WORLD_HEIGHT - 180;
+      const peakTargetY = 1650; // gentler mountain
 
       let x = 0;
       while (x <= WORLD_WIDTH) {
         const t = x / WORLD_WIDTH;
 
-        const broadRise = Math.pow(t, 1.08);
-        const upperCone = Math.pow(Math.max(0, (t - 0.62) / 0.38), 1.8);
+        const broadRise = Math.pow(t, 1.15);
+        const upperCone = Math.pow(Math.max(0, (t - 0.70) / 0.30), 1.5);
 
-        const ridge1 = Math.sin(t * Math.PI * 3.4) * 90;
-        const ridge2 = Math.sin(t * Math.PI * 11.0 + 0.9) * 28;
-        const ridge3 = Math.sin(t * Math.PI * 24.0 + 1.7) * 10;
+        const ridge1 = Math.sin(t * Math.PI * 3.0) * 55;
+        const ridge2 = Math.sin(t * Math.PI * 9.5 + 0.9) * 18;
+        const ridge3 = Math.sin(t * Math.PI * 20.0 + 1.7) * 7;
 
-        const ledge = (Math.abs(Math.sin(t * Math.PI * 7.0)) < 0.17) ? 25 : 0;
-        const mountainLift = (baseY - peakTargetY) * (0.78 * broadRise + 0.22 * upperCone);
+        const ledge = (Math.abs(Math.sin(t * Math.PI * 6.0)) < 0.16) ? 18 : 0;
+        const mountainLift = (baseY - peakTargetY) * (0.82 * broadRise + 0.18 * upperCone);
 
         let y = baseY - mountainLift + ridge1 + ridge2 + ridge3 + ledge;
-        y = clamp(y, 680, WORLD_HEIGHT - 80);
+        y = clamp(y, 1450, WORLD_HEIGHT - 90);
 
         terrainPoints.push({ x, y });
         x += step;
@@ -375,7 +369,7 @@
         const steepness = Math.abs(pNext.y - pPrev.y);
         const altitude = WORLD_HEIGHT - p.y;
 
-        if (altitude < 2600 && steepness < 18 && Math.random() > 0.72) {
+        if (altitude < 2800 && steepness < 16 && Math.random() > 0.72) {
           trees.push({
             x: p.x + (Math.random() - 0.5) * 16,
             yBottom: p.y,
@@ -385,7 +379,7 @@
           });
         }
 
-        const rockChance = altitude > 2400 ? 0.34 : 0.22;
+        const rockChance = altitude > 2600 ? 0.32 : 0.20;
         if (Math.random() < rockChance) {
           rocks.push({
             x: p.x + (Math.random() - 0.5) * 14,
@@ -396,13 +390,8 @@
           });
         }
 
-        if (i % 26 === 0 && steepness < 14) {
-          shops.push({ x: p.x - 30, yBottom: p.y, width: 60, height: 60 });
-        }
-
-        if (i % 45 === 0 && steepness < 12) {
-          camps.push({ x: p.x - 26, yBottom: p.y, width: 52, height: 36, reached: false });
-        }
+        if (i % 32 === 0 && steepness < 13) shops.push({ x: p.x - 30, yBottom: p.y, width: 60, height: 60 });
+        if (i % 52 === 0 && steepness < 12) camps.push({ x: p.x - 26, yBottom: p.y, width: 52, height: 36, reached: false });
       }
 
       player.x = 260;
@@ -415,7 +404,7 @@
       checkpoint.reached = true;
     }
 
-    // ============== Entities logic ==============
+    // ============== World interactions ==============
     function isNearShop() {
       const px = player.x + player.width * 0.5;
       const py = player.y + player.height * 0.5;
@@ -426,7 +415,6 @@
       }
       return false;
     }
-
     function tryOpenShop() { if (isNearShop()) openStore(); }
 
     function tryMineOrChop() {
@@ -466,39 +454,34 @@
     function checkCampReached() {
       const px = player.x + player.width * 0.5;
       const py = player.y + player.height;
-      let reachedAny = false;
-
       for (const c of camps) {
         const cx = c.x + c.width * 0.5;
         const cy = c.yBottom;
         if (Math.hypot(px - cx, py - cy) < 70) {
           c.reached = true;
-          reachedAny = true;
           if ((WORLD_HEIGHT - c.yBottom) > (WORLD_HEIGHT - checkpoint.y)) {
             checkpoint.x = c.x + c.width * 0.5;
             checkpoint.y = c.yBottom - player.height;
           }
         }
       }
-      return reachedAny;
     }
 
     function spawnAvalanche(dt, nowSec) {
       const alt = getHeightMeters();
-      if (alt < 4200) return;
+      if (alt < 4400) return;
 
-      const minInterval = 8 - Math.min(4, (alt - 4200) / 1200); // gets more frequent
+      const minInterval = 10 - Math.min(4, (alt - 4400) / 1400);
       if (nowSec - lastAvalancheSpawn < minInterval) return;
 
-      if (Math.random() < 0.018 * dt * 60) {
-        const aheadX = clamp(player.x + 300 + Math.random() * 600, 0, WORLD_WIDTH);
+      if (Math.random() < 0.014 * dt * 60) {
+        const aheadX = clamp(player.x + 360 + Math.random() * 700, 0, WORLD_WIDTH);
         const y = getTerrainY(aheadX) - 90;
         avalanches.push({
-          x: aheadX,
-          y,
+          x: aheadX, y,
           radius: 20 + Math.random() * 12,
-          vx: -3.5 - Math.random() * 2.2,
-          life: 9,
+          vx: -3.4 - Math.random() * 1.8,
+          life: 10,
         });
         lastAvalancheSpawn = nowSec;
       }
@@ -514,10 +497,9 @@
         const px = player.x + player.width * 0.5;
         const py = player.y + player.height * 0.5;
         if (Math.hypot(px - a.x, py - a.y) < a.radius + 14) {
-          // hit: lose temperature + oxygen and knockback
-          player.temperature = Math.max(32, player.temperature - 18);
-          player.oxygen = Math.max(0, player.oxygen - 20);
-          player.vx -= 4;
+          player.temperature = Math.max(32, player.temperature - 12);
+          player.oxygen = Math.max(0, player.oxygen - 14);
+          player.vx -= 3;
           a.life = 0;
         }
 
@@ -539,12 +521,11 @@
         player.vy = 0;
         player.isJumping = false;
 
-        // ice slip at high altitude
         const alt = getHeightMeters();
-        if (alt > 3400) {
+        if (alt > 3600) {
           const slope = localSlope(player.x);
-          const slip = slope * (alt > 5200 ? 1.7 : 1.1); // stronger in death zone
-          player.vx += slip * (dt * 60) * 0.35;
+          const slip = slope * (alt > 5600 ? 1.45 : 0.95);
+          player.vx += slip * (dt * 60) * 0.28;
         }
       } else {
         player.isJumping = true;
@@ -567,13 +548,13 @@
       gameState.storeOpen = true;
 
       const storeItems = document.getElementById('storeItems');
-      const storeMenu = document.getElementById('storeMenu');
       storeItems.innerHTML = '';
 
       const buyItems = [
         { id: 'hotPocket', name: 'Hot Pocket', price: 50 },
         { id: 'heatLamp', name: 'Heat Lamp', price: 100 },
         { id: 'thermalBlanket', name: 'Thermal Blanket', price: 150 },
+        { id: 'oxygenTank', name: 'Oxygen Tank', price: 120 },
       ];
 
       for (const item of buyItems) {
@@ -581,7 +562,7 @@
         d.className = 'store-item';
         d.innerHTML = `
           <div class="item-info">
-            <div class="item-name">🔥 ${item.name}</div>
+            <div class="item-name">${item.id === 'oxygenTank' ? '🫧' : '🔥'} ${item.name}</div>
             <div class="item-details">Price: $${item.price}</div>
           </div>
           <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
@@ -609,8 +590,9 @@
         storeItems.appendChild(d);
       }
 
-      storeMenu.style.display = 'block';
+      document.getElementById('storeMenu').style.display = 'block';
     }
+
     function closeStore() { gameState.storeOpen = false; document.getElementById('storeMenu').style.display = 'none'; }
 
     function openItemMenu() {
@@ -618,24 +600,30 @@
       const itemOptions = document.getElementById('itemOptions');
       itemOptions.innerHTML = '';
 
-      for (const key of Object.keys(heatItems)) {
+      for (const key of Object.keys(items)) {
         if (inventory[key] <= 0) continue;
-        const item = heatItems[key];
+        const item = items[key];
+        const icon = item.type === 'oxygen' ? '🫧' : '🔥';
+        const detail = item.type === 'oxygen'
+          ? `Restores Oxygen | Have: ${inventory[key]}`
+          : `Duration: ${item.duration}s | Have: ${inventory[key]}`;
+
         const d = document.createElement('div');
         d.className = 'item-option';
         d.innerHTML = `
           <div class="item-info">
-            <div class="item-name">🔥 ${item.name}</div>
-            <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[key]}</div>
+            <div class="item-name">${icon} ${item.name}</div>
+            <div class="item-details">${detail}</div>
           </div>
           <button class="item-btn" onclick="useItem('${key}')">Use</button>
         `;
         itemOptions.appendChild(d);
       }
 
-      if (!itemOptions.children.length) itemOptions.innerHTML = `<p style="color:#aaa">No heat items available</p>`;
+      if (!itemOptions.children.length) itemOptions.innerHTML = `<p style="color:#aaa">No usable items</p>`;
       document.getElementById('itemMenu').style.display = 'block';
     }
+
     function closeItemMenu() { gameState.itemMenuOpen = false; document.getElementById('itemMenu').style.display = 'none'; }
 
     function buyItem(id, price) {
@@ -645,6 +633,7 @@
       updateUI();
       openStore();
     }
+
     function sellItem(id, price) {
       if (inventory[id] <= 0) return;
       inventory[id]--;
@@ -652,12 +641,19 @@
       updateUI();
       openStore();
     }
+
     function useItem(key) {
       if (inventory[key] <= 0) return;
       inventory[key]--;
-      const item = heatItems[key];
-      activeHeatItems.push({ type: key, duration: item.duration, start: performance.now()/1000 });
-      player.temperature = Math.min(player.maxTemperature, player.temperature + 40);
+
+      const item = items[key];
+      if (item.type === 'oxygen') {
+        player.oxygen = Math.min(100, player.oxygen + 45);
+      } else {
+        activeHeatItems.push({ type: key, duration: item.duration, start: performance.now() / 1000 });
+        player.temperature = Math.min(player.maxTemperature, player.temperature + 40);
+      }
+
       updateUI();
       closeItemMenu();
     }
@@ -682,17 +678,16 @@
       document.getElementById('hotPocketCount').textContent = inventory.hotPocket;
       document.getElementById('heatLampCount').textContent = inventory.heatLamp;
       document.getElementById('thermalBlanketCount').textContent = inventory.thermalBlanket;
+      document.getElementById('oxygenTankCount').textContent = inventory.oxygenTank;
 
       document.getElementById('toolDisplay').textContent = player.currentTool === 'axe' ? 'Axe' : 'Pickaxe';
       document.getElementById('nearShopHint').textContent = isNearShop() ? 'YES' : 'No';
-
-      const campReached = camps.some(c => c.reached);
-      document.getElementById('campHint').textContent = campReached ? 'Yes' : 'No';
+      document.getElementById('campHint').textContent = camps.some(c => c.reached) ? 'Yes' : 'No';
 
       document.getElementById('temperatureBar').style.width = clamp(((player.temperature - 32) / 180) * 100, 0, 100) + '%';
       document.getElementById('oxygenBar').style.width = clamp(player.oxygen, 0, 100) + '%';
 
-      const now = performance.now()/1000;
+      const now = performance.now() / 1000;
       const activeDiv = document.getElementById('activeHeatItems');
       activeDiv.innerHTML = '';
       for (const it of activeHeatItems) {
@@ -700,7 +695,7 @@
         if (rem > 0) {
           const d = document.createElement('div');
           d.className = 'heat-item-timer';
-          d.textContent = `${heatItems[it.type].name}: ${rem}s`;
+          d.textContent = `${items[it.type].name}: ${rem}s`;
           activeDiv.appendChild(d);
         }
       }
@@ -717,6 +712,7 @@
         if (gameState.itemMenuOpen) closeItemMenu();
       }
     });
+
     document.addEventListener('keyup', (e) => {
       keys[e.key] = false;
       if (e.key === 'ArrowDown') actionDown = false;
@@ -724,15 +720,16 @@
 
     function bindHoldButton(id, key) {
       const el = document.getElementById(id);
-      const on = (e)=>{ e.preventDefault(); touchControls[key]=true; };
-      const off = (e)=>{ e.preventDefault(); touchControls[key]=false; };
-      el.addEventListener('touchstart', on, {passive:false});
-      el.addEventListener('touchend', off, {passive:false});
-      el.addEventListener('touchcancel', off, {passive:false});
+      const on = (e)=>{ e.preventDefault(); touchControls[key] = true; };
+      const off = (e)=>{ e.preventDefault(); touchControls[key] = false; };
+      el.addEventListener('touchstart', on, { passive: false });
+      el.addEventListener('touchend', off, { passive: false });
+      el.addEventListener('touchcancel', off, { passive: false });
       el.addEventListener('mousedown', on);
       el.addEventListener('mouseup', off);
       el.addEventListener('mouseleave', off);
     }
+
     bindHoldButton('leftBtn', 'left');
     bindHoldButton('rightBtn', 'right');
     bindHoldButton('jumpBtn', 'jump');
@@ -746,7 +743,7 @@
       if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
     });
 
-    // ============== Drawing ==============
+    // ============== Draw ==============
     function drawTerrain() {
       const altitude = getHeightMeters();
       const coldFactor = clamp((altitude - 1200) / 3800, 0, 1);
@@ -757,12 +754,11 @@
       ctx.fillStyle = sky;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // far parallax peaks
       ctx.save();
-      ctx.globalAlpha = 0.26;
+      ctx.globalAlpha = 0.24;
       ctx.fillStyle = '#9fb5c8';
-      const par = camera.x * 0.22;
-      for (let i = -2; i < 10; i++) {
+      const par = camera.x * 0.18;
+      for (let i = -2; i < 14; i++) {
         const bx = i * 260 - (par % 260);
         ctx.beginPath();
         ctx.moveTo(bx, canvas.height);
@@ -773,13 +769,12 @@
       }
       ctx.restore();
 
-      // mountain
       ctx.beginPath();
       const first = terrainPoints[0];
-      ctx.moveTo(first.x - camera.x, canvas.height + 200);
+      ctx.moveTo(first.x - camera.x, canvas.height + 250);
       for (const p of terrainPoints) ctx.lineTo(p.x - camera.x, p.y - camera.y);
       const last = terrainPoints[terrainPoints.length - 1];
-      ctx.lineTo(last.x - camera.x, canvas.height + 200);
+      ctx.lineTo(last.x - camera.x, canvas.height + 250);
       ctx.closePath();
 
       const mGrad = ctx.createLinearGradient(0, -camera.y, 0, WORLD_HEIGHT - camera.y);
@@ -798,24 +793,23 @@
       ctx.lineWidth = 2;
       ctx.stroke();
 
-      // summit snow overlay
       ctx.save();
       ctx.beginPath();
-      let started = false;
+      let startedSnow = false;
       for (const p of terrainPoints) {
         const worldAlt = WORLD_HEIGHT - p.y;
         if (worldAlt > 3000) {
           const sx = p.x - camera.x;
           const sy = p.y - camera.y;
-          if (!started) { ctx.moveTo(sx, sy); started = true; }
+          if (!startedSnow) { ctx.moveTo(sx, sy); startedSnow = true; }
           else ctx.lineTo(sx, sy);
         }
       }
-      if (started) {
+      if (startedSnow) {
         ctx.lineTo(WORLD_WIDTH - camera.x, -camera.y);
         ctx.lineTo(0 - camera.x, -camera.y);
         ctx.closePath();
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.fillStyle = 'rgba(255,255,255,0.42)';
         ctx.fill();
       }
       ctx.restore();
@@ -863,7 +857,6 @@
         ctx.fillRect(sx, sy, s.width, s.height);
         ctx.fillStyle = '#d2691e';
         ctx.fillRect(sx + 4, sy + 4, s.width - 8, s.height - 8);
-
         ctx.fillStyle = '#fff';
         ctx.font = '20px Arial';
         ctx.textAlign = 'center';
@@ -927,10 +920,9 @@
       const alt = getHeightMeters();
       const windStrength = clamp((alt - 2200) / 3500, 0, 1);
 
-      // wind streaks
       if (windStrength > 0) {
         ctx.save();
-        ctx.globalAlpha = 0.08 + windStrength * 0.12;
+        ctx.globalAlpha = 0.08 + windStrength * 0.10;
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1;
         for (let i = 0; i < 28; i++) {
@@ -944,9 +936,8 @@
         ctx.restore();
       }
 
-      // fog / blizzard veil in high alt
       if (alt > 4200) {
-        const fogAlpha = clamp((alt - 4200) / 2200, 0.08, 0.28);
+        const fogAlpha = clamp((alt - 4200) / 2200, 0.06, 0.22);
         const fog = ctx.createLinearGradient(0,0,0,canvas.height * 0.5);
         fog.addColorStop(0, `rgba(255,255,255,${fogAlpha})`);
         fog.addColorStop(1, 'rgba(255,255,255,0)');
@@ -955,7 +946,7 @@
       }
     }
 
-    // ============== Update/Render loop ==============
+    // ============== Loop ==============
     function update(dt, nowSec) {
       pollGamepad();
 
@@ -999,10 +990,8 @@
 
       // temperature
       player.temperature -= BASE_TEMP_DECAY_PER_SEC * dt;
-
-      const now = nowSec;
       activeHeatItems = activeHeatItems.filter(it => {
-        const elapsed = now - it.start;
+        const elapsed = nowSec - it.start;
         if (elapsed < it.duration) {
           player.temperature += 0.15 * (dt * 60);
           return true;
@@ -1010,20 +999,19 @@
         return false;
       });
 
-      // oxygen by altitude
+      // oxygen (slow: 3 min max drain at highest altitude)
       const alt = getHeightMeters();
       if (alt > OXYGEN_START_ALT) {
-        const t = clamp((alt - OXYGEN_START_ALT) / 3800, 0, 1);
-        player.oxygen -= (1 + t * (OXYGEN_DRAIN_MAX - 1)) * dt;
+        const t = clamp((alt - OXYGEN_START_ALT) / 4200, 0, 1);
+        const drain = 0.10 + t * (OXYGEN_DRAIN_MAX - 0.10);
+        player.oxygen -= drain * dt;
       } else {
         player.oxygen += OXYGEN_RECOVER * dt;
       }
       player.oxygen = clamp(player.oxygen, 0, 100);
 
-      // oxygen hurts temp when very low
-      if (player.oxygen < 18) {
-        player.temperature -= (18 - player.oxygen) * 0.02 * (dt * 60);
-      }
+      // low oxygen penalty
+      if (player.oxygen < 15) player.temperature -= (15 - player.oxygen) * 0.014 * (dt * 60);
 
       player.temperature = clamp(player.temperature, 32, player.maxTemperature);
 
@@ -1031,21 +1019,16 @@
       spawnAvalanche(dt, nowSec);
       updateAvalanches(dt);
 
-      // win near summit
       if (!gameState.won && player.x > WORLD_WIDTH - 240) {
         gameState.won = true;
         alert('🏁 You reached the summit! Congratulations!');
       }
 
-      // fail conditions
-      if (!gameState.gameOver && (player.temperature <= 32 || player.oxygen <= 0)) {
-        gameState.gameOver = true;
+      if (player.temperature <= 32 || player.oxygen <= 0) {
         alert('You collapsed! Respawning at last camp...');
         respawnAtCheckpoint();
-        gameState.gameOver = false;
       }
 
-      // camera
       const targetCamX = player.x - canvas.width * 0.45;
       const targetCamY = player.y - canvas.height * 0.55;
       camera.x += (targetCamX - camera.x) * Math.min(1, dt * 6);
@@ -1073,7 +1056,6 @@
 
       update(dt, nowSec);
       render(dt);
-
       requestAnimationFrame(loop);
     }
 
@@ -1089,7 +1071,6 @@
       el.addEventListener('mouseup', off);
       el.addEventListener('mouseleave', off);
     }
-
     bindHoldButton('leftBtn', 'left');
     bindHoldButton('rightBtn', 'right');
     bindHoldButton('jumpBtn', 'jump');
@@ -1098,7 +1079,6 @@
     document.getElementById('mineBtn').addEventListener('click', tryMineOrChop);
     document.getElementById('useBtn').addEventListener('click', openItemMenu);
     document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
-
     canvas.addEventListener('click', () => {
       if (!gameState.storeOpen && !gameState.itemMenuOpen) tryMineOrChop();
     });
@@ -1113,7 +1093,7 @@
         gameState.music = new Audio(musicUrl);
         gameState.music.loop = true;
         gameState.music.volume = 0.3;
-        gameState.music.play().catch(()=>{});
+        gameState.music.play().catch(() => {});
       }
 
       document.getElementById('menu').style.display = 'none';
@@ -1126,7 +1106,6 @@
       requestAnimationFrame(loop);
     });
 
-    window.addEventListener('resize', resizeCanvas);
     resizeCanvas();
 
     // expose inline handlers
@@ -1137,4 +1116,4 @@
     window.useItem = useItem;
   </script>
 </body>
-  </html>
+</html>
