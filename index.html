@@ -3,126 +3,104 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Climb Mount Everest</title>
+  <title>Climb Mount Everest - Procedural</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: Arial, sans-serif; background: #1a1a2e; overflow: hidden; }
 
     #menu {
-      position: fixed; inset: 0;
+      position: fixed; inset: 0; z-index: 1000;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      display: flex; flex-direction: column; justify-content: center; align-items: center;
-      z-index: 1000;
+      display: flex; align-items: center; justify-content: center; flex-direction: column;
     }
 
-    #menu h1 {
-      color: white; font-size: 48px; margin-bottom: 30px;
-      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
-
+    #menu h1 { color: #fff; font-size: 46px; margin-bottom: 24px; text-align: center; padding: 0 16px; }
     #menu .input-group {
-      display: flex; flex-direction: column; gap: 15px;
-      background: rgba(255,255,255,0.1); padding: 30px; border-radius: 10px;
-      backdrop-filter: blur(10px);
+      display: flex; flex-direction: column; gap: 12px;
+      background: rgba(255,255,255,0.14); border-radius: 12px;
+      padding: 24px; min-width: 320px; width: min(92vw, 520px);
+      backdrop-filter: blur(8px);
     }
-
-    #menu label { color: white; font-size: 18px; font-weight: bold; }
-
-    #musicUrl {
-      padding: 12px; font-size: 16px; border: none; border-radius: 5px;
-      width: 400px; max-width: 90vw;
-    }
-
+    #menu label { color: #fff; font-weight: 700; }
+    #musicUrl { padding: 12px; border-radius: 8px; border: none; font-size: 15px; }
     #startBtn {
-      padding: 15px 40px; font-size: 20px; background: #4CAF50; color: white;
-      border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: background 0.3s;
+      padding: 13px 16px; border: none; border-radius: 8px; font-weight: 700; font-size: 18px;
+      background: #4CAF50; color: #fff; cursor: pointer;
     }
-    #startBtn:hover { background: #45a049; }
+    #startBtn:hover { background: #3f9743; }
 
-    #gameContainer { position: relative; width: 100%; height: 100vh; display: none; }
+    #gameContainer { position: relative; width: 100vw; height: 100vh; display: none; }
     canvas { display: block; width: 100%; height: 100%; touch-action: none; }
 
     #ui {
-      position: absolute; top: 10px; left: 10px; color: white; font-size: 16px;
-      background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; z-index: 100;
-      min-width: 260px;
+      position: absolute; left: 10px; top: 10px; z-index: 100;
+      color: #fff; background: rgba(0,0,0,0.55); border-radius: 8px;
+      padding: 12px; min-width: 250px; font-size: 14px;
     }
 
     #temperature {
-      width: 200px; height: 20px; background: #333; border: 2px solid white;
-      border-radius: 5px; margin: 10px 0; overflow: hidden;
+      margin-top: 8px; width: 210px; height: 16px;
+      border-radius: 6px; border: 2px solid #fff; overflow: hidden; background: #333;
+    }
+    #temperatureBar {
+      height: 100%; width: 100%;
+      background: linear-gradient(90deg, #3483ff, #47d16a, #ffde59, #ff4d4d);
     }
 
-    #temperatureBar {
-      height: 100%; background: linear-gradient(90deg, blue, green, yellow, red);
-      width: 100%; transition: width 0.1s;
+    .active-heat-items { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .heat-item-timer {
+      background: rgba(255,100,100,0.45); border: 1px solid rgba(255,140,140,0.9);
+      border-radius: 6px; padding: 5px 8px; font-size: 11px;
     }
 
     #inventory {
-      position: absolute; top: 10px; right: 10px; color: white; font-size: 14px;
-      background: rgba(0,0,0,0.5); padding: 15px; border-radius: 5px; z-index: 100;
+      position: absolute; right: 10px; top: 10px; z-index: 100;
+      color: #fff; background: rgba(0,0,0,0.55); border-radius: 8px;
+      padding: 12px; font-size: 14px; min-width: 180px;
     }
 
     #storeMenu, #itemMenu {
-      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.9); padding: 30px; border-radius: 10px; color: white;
-      z-index: 500; max-height: 80vh; overflow-y: auto; display: none; min-width: 400px;
+      position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.92); color: #fff; z-index: 500; display: none;
+      border-radius: 12px; padding: 24px; width: min(92vw, 520px); max-height: 80vh; overflow-y: auto;
     }
 
     .store-item, .item-option {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 15px; margin: 10px 0; background: rgba(255,255,255,0.1);
-      border-radius: 5px; border: 2px solid rgba(255,255,255,0.2);
+      display: flex; align-items: center; justify-content: space-between;
+      margin: 10px 0; padding: 12px; background: rgba(255,255,255,0.09);
+      border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; gap: 10px;
     }
 
-    .store-item canvas, .item-option canvas {
-      width: 50px; height: 50px; margin-right: 15px; background: rgba(0,0,0,0.5);
+    .item-info { flex: 1; min-width: 0; }
+    .item-name { font-weight: 700; margin-bottom: 4px; }
+    .item-details { font-size: 12px; color: #cfcfcf; }
+    .item-buttons { display: flex; gap: 8px; }
+    .item-btn {
+      border: none; border-radius: 6px; padding: 7px 10px; font-size: 12px;
+      background: #4CAF50; color: #fff; cursor: pointer; font-weight: 700;
     }
 
-    .item-info { flex: 1; }
-    .item-name { font-weight: bold; margin-bottom: 5px; }
-    .item-details { font-size: 12px; color: #aaa; }
-
-    .item-buttons { display: flex; gap: 10px; }
-
-    button.item-btn {
-      padding: 8px 15px; background: #4CAF50; color: white;
-      border: none; border-radius: 3px; cursor: pointer; font-size: 12px;
+    .close-btn {
+      position: absolute; right: 10px; top: 10px;
+      border: none; border-radius: 6px; background: #f44336; color: #fff;
+      padding: 8px 10px; font-weight: 700; cursor: pointer;
     }
-    button.item-btn:hover { background: #45a049; }
-
-    button.close-btn {
-      position: absolute; top: 10px; right: 10px; background: #f44336; color: white;
-      border: none; padding: 10px 15px; border-radius: 3px; cursor: pointer; font-weight: bold;
-    }
-    button.close-btn:hover { background: #da190b; }
 
     #controlButtons {
-      position: fixed; bottom: 20px; left: 20px;
-      display: flex; flex-direction: column; gap: 10px; z-index: 200;
+      position: fixed; left: 16px; bottom: 16px; z-index: 200;
+      display: flex; flex-direction: column; gap: 8px;
     }
 
     .control-btn {
-      padding: 15px 25px; background: rgba(100, 150, 255, 0.7); color: white;
-      border: 2px solid white; border-radius: 8px; font-size: 16px; font-weight: bold;
+      border: 2px solid #fff; border-radius: 10px;
+      background: rgba(80,130,255,0.78); color: #fff;
+      font-weight: 700; font-size: 14px; padding: 12px 16px;
       cursor: pointer; touch-action: manipulation;
     }
 
-    .control-btn:active { background: rgba(100, 150, 255, 1); transform: scale(0.95); }
-
-    .active-heat-items { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
-    .heat-item-timer {
-      background: rgba(255,100,100,0.5); padding: 8px 12px; border-radius: 3px; font-size: 12px;
-      border: 1px solid rgba(255,100,100,0.8);
-    }
-
-    #controllerStatus { margin-top: 8px; font-size: 12px; color: #9ee5ff; }
-
     @media (max-width: 768px) {
-      #musicUrl { width: 90vw; }
       #ui, #inventory { font-size: 12px; padding: 10px; }
-      #storeMenu, #itemMenu { min-width: 90vw; max-width: 90vw; }
-      .control-btn { padding: 12px 20px; font-size: 14px; }
+      .control-btn { font-size: 13px; padding: 10px 13px; }
     }
   </style>
 </head>
@@ -140,10 +118,11 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui">
-      <div>Area: <span id="areaLevel">1</span>/4</div>
+      <div>Height: <span id="heightValue">0</span> m</div>
+      <div>Biome: <span id="biomeValue">Base Camp</span></div>
       <div>Money: $<span id="money">100</span></div>
       <div>Temperature: <span id="tempValue">122</span>°F</div>
-      <div id="temperature"><div id="temperatureBar" style="width: 100%;"></div></div>
+      <div id="temperature"><div id="temperatureBar" style="width:100%"></div></div>
       <div>Tool: <span id="toolDisplay">Axe</span></div>
       <div id="controllerStatus">Controller: Not connected</div>
       <div class="active-heat-items" id="activeHeatItems"></div>
@@ -180,72 +159,108 @@
   </div>
 
   <script>
-    const gameState = { menu: true, storeOpen: false, itemMenuOpen: false, musicUrl: '', music: null, gameOver: false };
+    // =========================
+    // Core constants
+    // =========================
+    const WORLD_WIDTH = 8000;
+    const WORLD_FLOOR_Y = 7000;
+    const CHUNK_HEIGHT = 1200;
+    const PLATFORM_MIN_GAP_Y = 80;
+    const PLATFORM_MAX_GAP_Y = 170;
+    const MAX_ACTIVE_CHUNKS_BELOW = 2;
+    const MAX_ACTIVE_CHUNKS_ABOVE = 6;
 
-    const player = {
-      x: 100, y: 300, width: 30, height: 50,
-      velocityX: 0, velocityY: 0, velocityXTarget: 0,
-      temperature: 122, maxTemperature: 212, isJumping: false,
-      currentTool: 'axe', area: 1
+    const FREEZE_SECONDS = 240;
+    const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
+
+    // =========================
+    // State
+    // =========================
+    const gameState = {
+      menu: true,
+      storeOpen: false,
+      itemMenuOpen: false,
+      gameOver: false,
+      musicUrl: '',
+      music: null,
     };
 
-    const inventory = { wood: 0, stone: 0, hotPocket: 0, heatLamp: 0, thermalBlanket: 0, money: 100 };
+    const player = {
+      x: WORLD_WIDTH * 0.5,
+      y: WORLD_FLOOR_Y - 60,
+      width: 30,
+      height: 50,
+      velocityX: 0,
+      velocityY: 0,
+      velocityXTarget: 0,
+      temperature: 122,
+      maxTemperature: 212,
+      isJumping: false,
+      currentTool: 'axe',
+    };
+
+    const inventory = {
+      wood: 0, stone: 0,
+      hotPocket: 0, heatLamp: 0, thermalBlanket: 0,
+      money: 100,
+    };
 
     const heatItems = {
       hotPocket: { duration: 30, name: 'Hot Pocket', price: 50 },
       heatLamp: { duration: 60, name: 'Heat Lamp', price: 100 },
-      thermalBlanket: { duration: 90, name: 'Thermal Blanket', price: 150 }
+      thermalBlanket: { duration: 90, name: 'Thermal Blanket', price: 150 },
     };
 
     let activeHeatItems = [];
-    let platforms = [];
-    let resources = [];
-    let stores = [];
-    let camera = { y: 0 };
     let keys = {};
     let touchControls = { left: false, right: false, jump: false };
-    let lastTime = performance.now();
     let interactionPressed = false;
     let gameLoopStarted = false;
+    let lastTime = performance.now();
 
-    // ---------- GAMEPAD STATE ----------
+    // Procedural world containers
+    // chunks: Map<number, {platforms, resources, stores, biomeName}>
+    const chunks = new Map();
+
+    // Camera with smooth scrolling both X and Y
+    const camera = { x: 0, y: 0 };
+
+    // =========================
+    // Canvas
+    // =========================
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      spriteCache.fogBySize.clear();
+    }
+    window.addEventListener('resize', resizeCanvas);
+
+    // =========================
+    // Sprite cache
+    // =========================
+    const spriteCache = {
+      platform: new Map(),
+      resource: new Map(),
+      item: new Map(),
+      playerByBand: new Map(),
+      fogBySize: new Map(),
+    };
+
+    // =========================
+    // Gamepad
+    // =========================
     const gamepadState = {
       index: null,
       connected: false,
       name: '',
       buttonsPrev: [],
-      left: false,
-      right: false,
-      jumpPressed: false,
-      usePressed: false,
-      toolPressed: false,
-      menuPressed: false,
+      left: false, right: false,
+      jumpPressed: false, usePressed: false, toolPressed: false, menuPressed: false,
     };
     const GAMEPAD_DEADZONE = 0.25;
-
-    const LEVEL_HEIGHT = 2000;
-    const AREA_COUNT = 4;
-    const WORLD_FLOOR_Y = 7000;
-    const FREEZE_SECONDS = 240;
-    const BASE_TEMP_DECAY_PER_SEC = (122 - 32) / FREEZE_SECONDS;
-
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    const spriteCache = {
-      platform: new Map(), resource: new Map(), item: new Map(),
-      playerByBand: new Map(), fogBySize: new Map()
-    };
-
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      ground.width = canvas.width;
-      spriteCache.fogBySize.clear();
-    }
-    window.addEventListener('resize', resizeCanvas);
-
-    const ground = { y: WORLD_FLOOR_Y, height: 240, width: window.innerWidth };
 
     function setControllerStatus(msg) {
       document.getElementById('controllerStatus').textContent = `Controller: ${msg}`;
@@ -256,17 +271,16 @@
       return n.includes('nintendo') || n.includes('switch') || n.includes('pro controller') || n.includes('joy-con');
     }
 
-    function onGamepadConnected(e) {
+    window.addEventListener('gamepadconnected', (e) => {
       const gp = e.gamepad;
-      if (gamepadState.index === null) gamepadState.index = gp.index;
+      if (gamepadState.index == null) gamepadState.index = gp.index;
       gamepadState.connected = true;
       gamepadState.name = gp.id || 'Unknown';
       gamepadState.buttonsPrev = new Array(gp.buttons.length).fill(false);
       setControllerStatus(`Connected (${gamepadState.name})`);
-      console.log('Gamepad connected:', gp.id, 'index:', gp.index, 'mapping:', gp.mapping);
-    }
+    });
 
-    function onGamepadDisconnected(e) {
+    window.addEventListener('gamepaddisconnected', (e) => {
       if (gamepadState.index === e.gamepad.index) {
         gamepadState.index = null;
         gamepadState.connected = false;
@@ -274,19 +288,13 @@
         gamepadState.buttonsPrev = [];
         setControllerStatus('Not connected');
       }
-    }
+    });
 
-    window.addEventListener('gamepadconnected', onGamepadConnected);
-    window.addEventListener('gamepaddisconnected', onGamepadDisconnected);
-
-    function getButtonPressed(gp, idx) {
-      return !!(gp.buttons[idx] && gp.buttons[idx].pressed);
-    }
-
-    function justPressed(gp, idx) {
-      const cur = getButtonPressed(gp, idx);
-      const prev = !!gamepadState.buttonsPrev[idx];
-      gamepadState.buttonsPrev[idx] = cur;
+    function getBtn(gp, i) { return !!(gp.buttons[i] && gp.buttons[i].pressed); }
+    function justPressed(gp, i) {
+      const cur = getBtn(gp, i);
+      const prev = !!gamepadState.buttonsPrev[i];
+      gamepadState.buttonsPrev[i] = cur;
       return cur && !prev;
     }
 
@@ -299,20 +307,12 @@
       gamepadState.menuPressed = false;
 
       const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-      if (!pads) return;
-
       let gp = null;
-      if (gamepadState.index !== null && pads[gamepadState.index]) gp = pads[gamepadState.index];
+
+      if (gamepadState.index != null && pads[gamepadState.index]) gp = pads[gamepadState.index];
       if (!gp) gp = Array.from(pads).find(Boolean);
 
-      if (!gp) {
-        if (gamepadState.connected) {
-          gamepadState.connected = false;
-          gamepadState.index = null;
-          setControllerStatus('Not connected');
-        }
-        return;
-      }
+      if (!gp) return;
 
       if (!gamepadState.connected || gamepadState.index !== gp.index) {
         gamepadState.connected = true;
@@ -322,77 +322,117 @@
         setControllerStatus(`Connected (${gamepadState.name})`);
       }
 
-      // Stick + dpad
       const ax0 = gp.axes[0] || 0;
-      const dpadLeft = getButtonPressed(gp, 14);
-      const dpadRight = getButtonPressed(gp, 15);
+      const dLeft = getBtn(gp, 14);
+      const dRight = getBtn(gp, 15);
+      gamepadState.left = ax0 < -GAMEPAD_DEADZONE || dLeft;
+      gamepadState.right = ax0 > GAMEPAD_DEADZONE || dRight;
 
-      gamepadState.left = ax0 < -GAMEPAD_DEADZONE || dpadLeft;
-      gamepadState.right = ax0 > GAMEPAD_DEADZONE || dpadRight;
-
-      // Standard mapping:
-      // 0 bottom (A on Xbox / B on Nintendo)
-      // 1 right  (B on Xbox / A on Nintendo)
-      // 2 left   (X on Xbox / Y on Nintendo)
-      // 3 top    (Y on Xbox / X on Nintendo)
-      // 9 start/plus
-      // We support both expectations so Switch users are safe.
-      const switchLike = isSwitchLike(gp.id);
-
-      const jumpCandidates = switchLike ? [0, 1] : [0];
-      const useCandidates = switchLike ? [2, 3] : [2];
-      const toolCandidates = switchLike ? [3, 2] : [3];
+      const sw = isSwitchLike(gp.id);
+      const jumpCandidates = sw ? [0, 1] : [0];
+      const useCandidates = sw ? [2, 3] : [2];
+      const toolCandidates = sw ? [3, 2] : [3];
       const menuCandidates = [9];
 
-      for (const idx of jumpCandidates) {
-        if (justPressed(gp, idx)) { gamepadState.jumpPressed = true; break; }
-      }
-      for (const idx of useCandidates) {
-        if (justPressed(gp, idx)) { gamepadState.usePressed = true; break; }
-      }
-      for (const idx of toolCandidates) {
-        if (justPressed(gp, idx)) { gamepadState.toolPressed = true; break; }
-      }
-      for (const idx of menuCandidates) {
-        if (justPressed(gp, idx)) { gamepadState.menuPressed = true; break; }
-      }
+      for (const i of jumpCandidates) if (justPressed(gp, i)) { gamepadState.jumpPressed = true; break; }
+      for (const i of useCandidates) if (justPressed(gp, i)) { gamepadState.usePressed = true; break; }
+      for (const i of toolCandidates) if (justPressed(gp, i)) { gamepadState.toolPressed = true; break; }
+      for (const i of menuCandidates) if (justPressed(gp, i)) { gamepadState.menuPressed = true; break; }
 
-      // keep prev states for other buttons too
       for (let i = 0; i < gp.buttons.length; i++) {
         if (gamepadState.buttonsPrev[i] === undefined) gamepadState.buttonsPrev[i] = false;
-        const cur = !!gp.buttons[i].pressed;
-        if (!jumpCandidates.includes(i) && !useCandidates.includes(i) && !toolCandidates.includes(i) && !menuCandidates.includes(i)) {
-          gamepadState.buttonsPrev[i] = cur;
+        if (![...jumpCandidates, ...useCandidates, ...toolCandidates, ...menuCandidates].includes(i)) {
+          gamepadState.buttonsPrev[i] = !!gp.buttons[i].pressed;
         }
       }
     }
 
+    // =========================
+    // Utility random
+    // =========================
+    function mulberry32(seed) {
+      return function() {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function chunkSeed(index) {
+      // deterministic per chunk
+      return (index * 9301 + 49297) % 233280;
+    }
+
+    function biomeFromHeightMeters(h) {
+      if (h < 800) return { name: 'Base Camp', sky: '#dff4ff' };
+      if (h < 2200) return { name: 'Snowfield', sky: '#d7ecfa' };
+      if (h < 3800) return { name: 'Ice Wall', sky: '#cfe6f8' };
+      if (h < 5600) return { name: 'Storm Ridge', sky: '#c4d9ef' };
+      return { name: 'Death Zone', sky: '#b8cce4' };
+    }
+
+    // =========================
+    // Sprite generation
+    // =========================
     function generatePlayerSprite(temperature) {
       const band = temperature < 50 ? 'cold' : (temperature > 180 ? 'hot' : 'normal');
       if (spriteCache.playerByBand.has(band)) return spriteCache.playerByBand.get(band);
-      const c = document.createElement('canvas'); c.width = 30; c.height = 50;
+
+      const c = document.createElement('canvas');
+      c.width = 30; c.height = 50;
       const s = c.getContext('2d');
-      let color = '#ffff00'; if (band === 'cold') color = '#0066ff'; if (band === 'hot') color = '#ff3300';
-      s.fillStyle = color; s.fillRect(10, 5, 10, 10); s.fillRect(10, 15, 10, 15); s.fillRect(5, 18, 20, 5); s.fillRect(10, 30, 5, 15); s.fillRect(15, 30, 5, 15);
-      spriteCache.playerByBand.set(band, c); return c;
+
+      let color = '#ffff00';
+      if (band === 'cold') color = '#0066ff';
+      if (band === 'hot') color = '#ff3300';
+
+      s.fillStyle = color;
+      s.fillRect(10, 5, 10, 10);
+      s.fillRect(10, 15, 10, 15);
+      s.fillRect(5, 18, 20, 5);
+      s.fillRect(10, 30, 5, 15);
+      s.fillRect(15, 30, 5, 15);
+
+      spriteCache.playerByBand.set(band, c);
+      return c;
     }
 
     function generatePlatformSprite(width, height, type = 'snow') {
-      const key = `${type}:${width}x${height}`;
+      const w = Math.max(1, Math.floor(width));
+      const h = Math.max(1, Math.floor(height));
+      const key = `${type}:${w}x${h}`;
       if (spriteCache.platform.has(key)) return spriteCache.platform.get(key);
+
       const c = document.createElement('canvas');
-      c.width = Math.max(1, Math.floor(width)); c.height = Math.max(1, Math.floor(height));
+      c.width = w; c.height = h;
       const s = c.getContext('2d');
-      s.fillStyle = type === 'snow' ? '#f0f8ff' : '#8b7355'; s.fillRect(0, 0, c.width, c.height);
-      s.fillStyle = type === 'snow' ? '#e0e8ff' : '#9b8365';
-      for (let i = 0; i < c.width; i += 10) for (let j = 0; j < c.height; j += 10) if (Math.random() > 0.5) s.fillRect(i, j, 8, 8);
-      spriteCache.platform.set(key, c); return c;
+
+      if (type === 'snow') s.fillStyle = '#f3fbff';
+      else if (type === 'ice') s.fillStyle = '#b9dfff';
+      else if (type === 'rock') s.fillStyle = '#8b7355';
+      else s.fillStyle = '#ddd';
+
+      s.fillRect(0, 0, w, h);
+
+      s.fillStyle = type === 'rock' ? '#9c8366' : 'rgba(255,255,255,0.35)';
+      for (let i = 0; i < w; i += 10) {
+        for (let j = 0; j < h; j += 10) {
+          if (Math.random() > 0.52) s.fillRect(i, j, 8, 8);
+        }
+      }
+
+      spriteCache.platform.set(key, c);
+      return c;
     }
 
     function generateResourceSprite(type) {
       if (spriteCache.resource.has(type)) return spriteCache.resource.get(type);
-      const c = document.createElement('canvas'); c.width = 40; c.height = 40;
+
+      const c = document.createElement('canvas');
+      c.width = 40; c.height = 40;
       const s = c.getContext('2d');
+
       if (type === 'tree') {
         s.fillStyle = '#8b4513'; s.fillRect(15, 20, 10, 15);
         s.fillStyle = '#228b22'; s.beginPath(); s.arc(20, 15, 10, 0, Math.PI * 2); s.fill();
@@ -400,87 +440,313 @@
         s.fillStyle = '#808080'; s.beginPath(); s.arc(20, 20, 12, 0, Math.PI * 2); s.fill();
         s.fillStyle = '#606060'; s.fillRect(15, 15, 10, 10);
       }
-      spriteCache.resource.set(type, c); return c;
+
+      spriteCache.resource.set(type, c);
+      return c;
     }
 
     function generateItemSprite(itemType) {
       if (spriteCache.item.has(itemType)) return spriteCache.item.get(itemType);
-      const c = document.createElement('canvas'); c.width = 40; c.height = 40;
+
+      const c = document.createElement('canvas');
+      c.width = 40; c.height = 40;
       const s = c.getContext('2d');
-      if (itemType === 'hotPocket') { s.fillStyle = '#ff6347'; s.fillRect(10, 10, 20, 20); s.fillStyle = '#ff8c69'; s.fillRect(13, 13, 14, 14); }
-      else if (itemType === 'heatLamp') {
+
+      if (itemType === 'hotPocket') {
+        s.fillStyle = '#ff6347'; s.fillRect(10, 10, 20, 20);
+        s.fillStyle = '#ff8c69'; s.fillRect(13, 13, 14, 14);
+      } else if (itemType === 'heatLamp') {
         s.fillStyle = '#ffd700'; s.beginPath(); s.arc(20, 20, 10, 0, Math.PI * 2); s.fill();
         s.fillStyle = '#ffed4e'; s.beginPath(); s.arc(20, 20, 6, 0, Math.PI * 2); s.fill();
-      } else if (itemType === 'thermalBlanket') { s.fillStyle = '#ff1493'; s.fillRect(8, 8, 24, 24); s.fillStyle = '#ff69b4'; s.fillRect(12, 12, 16, 16); }
-      spriteCache.item.set(itemType, c); return c;
+      } else if (itemType === 'thermalBlanket') {
+        s.fillStyle = '#ff1493'; s.fillRect(8, 8, 24, 24);
+        s.fillStyle = '#ff69b4'; s.fillRect(12, 12, 16, 16);
+      }
+
+      spriteCache.item.set(itemType, c);
+      return c;
     }
 
     function generateFogSprite(width, height) {
       const key = `${width}x${height}`;
       if (spriteCache.fogBySize.has(key)) return spriteCache.fogBySize.get(key);
-      const c = document.createElement('canvas'); c.width = width; c.height = height;
+
+      const c = document.createElement('canvas');
+      c.width = width; c.height = height;
       const s = c.getContext('2d');
+
       const g = s.createLinearGradient(0, 0, 0, height);
-      g.addColorStop(0, 'rgba(255, 255, 255, 0.8)'); g.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      s.fillStyle = g; s.fillRect(0, 0, width, height);
-      spriteCache.fogBySize.set(key, c); return c;
+      g.addColorStop(0, 'rgba(255,255,255,0.65)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');
+      s.fillStyle = g;
+      s.fillRect(0, 0, width, height);
+
+      spriteCache.fogBySize.set(key, c);
+      return c;
     }
 
-    function areaTopY(area) { return WORLD_FLOOR_Y - area * LEVEL_HEIGHT; }
+    // =========================
+    // Procedural map generation
+    // =========================
+    function getChunkIndexByY(y) {
+      // chunk 0 is near floor, chunk increases upward
+      return Math.max(0, Math.floor((WORLD_FLOOR_Y - y) / CHUNK_HEIGHT));
+    }
 
-    function generateLevel(area) {
-      platforms = []; resources = []; stores = [];
-      const topY = areaTopY(area);
-      const startY = topY + LEVEL_HEIGHT - 100;
+    function chunkTopY(index) {
+      return WORLD_FLOOR_Y - (index + 1) * CHUNK_HEIGHT;
+    }
 
-      for (let i = 0; i < 15; i++) {
-        const y = startY - (i * 120);
-        const x = Math.sin(i * 0.5) * 200 + canvas.width / 2 - 100;
-        const width = 150 + Math.random() * 100;
-        const type = Math.random() > 0.7 ? 'rock' : 'snow';
-        platforms.push({ x, y, width, height: 30, type });
+    function chunkBottomY(index) {
+      return WORLD_FLOOR_Y - index * CHUNK_HEIGHT;
+    }
 
-        if (Math.random() > 0.5) {
-          resources.push({ x: x + Math.random() * Math.max(10, width - 40), y: y - 50, type: Math.random() > 0.5 ? 'tree' : 'rock', width: 40, height: 40 });
+    function ensureChunk(index) {
+      if (chunks.has(index)) return;
+
+      const rand = mulberry32(chunkSeed(index));
+      const platforms = [];
+      const resources = [];
+      const stores = [];
+
+      const yTop = chunkTopY(index);
+      const yBottom = chunkBottomY(index);
+
+      const heightMeters = Math.max(0, Math.floor((WORLD_FLOOR_Y - yTop) * 0.8));
+      const biome = biomeFromHeightMeters(heightMeters);
+
+      // Generate climbing path with lateral drift for better scroll
+      let currentY = yBottom - 60;
+      let currentX = 300 + rand() * (WORLD_WIDTH - 600);
+
+      // base difficulty scaling
+      const difficulty = Math.min(1.2, 0.35 + index * 0.04);
+      const minW = Math.max(80, 180 - index * 3);
+      const maxW = Math.max(120, 280 - index * 2);
+
+      while (currentY > yTop + 60) {
+        const gapY = PLATFORM_MIN_GAP_Y + rand() * (PLATFORM_MAX_GAP_Y + index * 2);
+        currentY -= gapY;
+
+        const drift = (rand() - 0.5) * (260 + difficulty * 160);
+        currentX += drift;
+        currentX = Math.max(50, Math.min(WORLD_WIDTH - 280, currentX));
+
+        const width = minW + rand() * (maxW - minW);
+        const typeRoll = rand();
+        let type = 'snow';
+        if (biome.name === 'Ice Wall') type = typeRoll > 0.45 ? 'ice' : 'snow';
+        else if (biome.name === 'Storm Ridge' || biome.name === 'Death Zone') type = typeRoll > 0.55 ? 'rock' : 'ice';
+        else type = typeRoll > 0.75 ? 'rock' : 'snow';
+
+        const plat = { x: currentX, y: currentY, width, height: 26 + rand() * 10, type };
+        platforms.push(plat);
+
+        // resource spawn chance
+        if (rand() > 0.42) {
+          resources.push({
+            x: plat.x + 10 + rand() * Math.max(10, plat.width - 50),
+            y: plat.y - 44,
+            width: 40,
+            height: 40,
+            type: rand() > 0.52 ? 'tree' : 'rock',
+          });
         }
       }
 
-      stores.push({ x: canvas.width / 2 - 30, y: startY - 350, width: 60, height: 60, area });
-    }
-
-    function setTool(tool) {
-      player.currentTool = tool;
-      document.getElementById('toolBtn').textContent = player.currentTool === 'axe' ? '🔨 TOOL (1/2)' : '⛏️ TOOL (2/2)';
-      updateUI();
-    }
-
-    document.getElementById('startBtn').addEventListener('click', () => {
-      if (gameLoopStarted) return;
-      const musicUrl = document.getElementById('musicUrl').value.trim();
-      gameState.musicUrl = musicUrl;
-
-      if (musicUrl) {
-        gameState.music = new Audio(musicUrl);
-        gameState.music.loop = true;
-        gameState.music.volume = 0.3;
-        gameState.music.play().catch(e => console.log('Audio play failed:', e));
+      // occasional store in chunk
+      if (index % 2 === 0 || rand() > 0.75) {
+        const shopPlatform = platforms[Math.max(0, Math.floor(rand() * platforms.length))];
+        if (shopPlatform) {
+          stores.push({
+            x: Math.min(WORLD_WIDTH - 64, shopPlatform.x + shopPlatform.width * 0.5 - 30),
+            y: shopPlatform.y - 64,
+            width: 60,
+            height: 60,
+          });
+        }
       }
 
-      document.getElementById('menu').style.display = 'none';
-      document.getElementById('gameContainer').style.display = 'block';
-      gameState.menu = false;
+      chunks.set(index, {
+        index, platforms, resources, stores,
+        biomeName: biome.name,
+      });
+    }
 
-      resizeCanvas();
-      generateLevel(player.area);
+    function maintainChunksAroundPlayer() {
+      const playerChunk = getChunkIndexByY(player.y);
+      const minChunk = Math.max(0, playerChunk - MAX_ACTIVE_CHUNKS_BELOW);
+      const maxChunk = playerChunk + MAX_ACTIVE_CHUNKS_ABOVE;
+
+      for (let i = minChunk; i <= maxChunk; i++) ensureChunk(i);
+
+      // cleanup far chunks to keep memory sane
+      for (const key of chunks.keys()) {
+        if (key < minChunk - 1 || key > maxChunk + 2) chunks.delete(key);
+      }
+    }
+
+    function getVisibleChunkRange() {
+      const topWorldY = camera.y - 120;
+      const bottomWorldY = camera.y + canvas.height + 120;
+      const topChunk = getChunkIndexByY(topWorldY);
+      const bottomChunk = getChunkIndexByY(bottomWorldY);
+      return [Math.min(topChunk, bottomChunk), Math.max(topChunk, bottomChunk)];
+    }
+
+    // =========================
+    // Menus + items
+    // =========================
+    function openStore() {
+      if (gameState.storeOpen) return;
+      gameState.storeOpen = true;
+      const storeMenu = document.getElementById('storeMenu');
+      const storeItems = document.getElementById('storeItems');
+      storeItems.innerHTML = '';
+
+      const buyItems = [
+        { id: 'hotPocket', name: 'Hot Pocket', price: 50, type: 'hotPocket' },
+        { id: 'heatLamp', name: 'Heat Lamp', price: 100, type: 'heatLamp' },
+        { id: 'thermalBlanket', name: 'Thermal Blanket', price: 150, type: 'thermalBlanket' },
+      ];
+
+      for (const item of buyItems) {
+        const d = document.createElement('div');
+        d.className = 'store-item';
+
+        const c = document.createElement('canvas');
+        c.width = 50; c.height = 50;
+        c.getContext('2d').drawImage(generateItemSprite(item.type), 0, 0, 50, 50);
+
+        d.innerHTML = `
+          <div class="item-info">
+            <div class="item-name">🔥 ${item.name}</div>
+            <div class="item-details">Price: $${item.price}</div>
+          </div>
+          <div class="item-buttons">
+            <button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button>
+          </div>
+        `;
+        d.insertBefore(c, d.firstChild);
+        storeItems.appendChild(d);
+      }
+
+      storeItems.innerHTML += `<hr style="margin: 14px 0; border-color:#555;">`;
+
+      const sellItems = [
+        { id: 'wood', name: 'Wood', price: 20 },
+        { id: 'stone', name: 'Stone', price: 30 },
+      ];
+
+      for (const item of sellItems) {
+        const d = document.createElement('div');
+        d.className = 'store-item';
+        d.innerHTML = `
+          <div class="item-info">
+            <div class="item-name">${item.name}</div>
+            <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id]}</div>
+          </div>
+          <div class="item-buttons">
+            <button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button>
+          </div>
+        `;
+        storeItems.appendChild(d);
+      }
+
+      storeMenu.style.display = 'block';
+    }
+
+    function closeStore() {
+      gameState.storeOpen = false;
+      document.getElementById('storeMenu').style.display = 'none';
+    }
+
+    function buyItem(itemId, price) {
+      if (inventory.money >= price) {
+        inventory.money -= price;
+        inventory[itemId]++;
+        updateUI();
+        openStore(); // refresh
+      } else {
+        alert('Not enough money!');
+      }
+    }
+
+    function sellItem(itemId, price) {
+      if (inventory[itemId] > 0) {
+        inventory[itemId]--;
+        inventory.money += price;
+        updateUI();
+        openStore();
+      }
+    }
+
+    function openItemMenu() {
+      gameState.itemMenuOpen = true;
+      const itemMenu = document.getElementById('itemMenu');
+      const itemOptions = document.getElementById('itemOptions');
+      itemOptions.innerHTML = '';
+
+      for (const key of Object.keys(heatItems)) {
+        if (inventory[key] <= 0) continue;
+
+        const item = heatItems[key];
+        const d = document.createElement('div');
+        d.className = 'item-option';
+
+        const c = document.createElement('canvas');
+        c.width = 50; c.height = 50;
+        c.getContext('2d').drawImage(generateItemSprite(key), 0, 0, 50, 50);
+
+        d.innerHTML = `
+          <div class="item-info">
+            <div class="item-name">🔥 ${item.name}</div>
+            <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[key]}</div>
+          </div>
+          <div class="item-buttons">
+            <button class="item-btn" onclick="useItem('${key}')">Use</button>
+          </div>
+        `;
+        d.insertBefore(c, d.firstChild);
+        itemOptions.appendChild(d);
+      }
+
+      if (!itemOptions.children.length) {
+        itemOptions.innerHTML = `<p style="color:#aaa;">No heat items available</p>`;
+      }
+
+      itemMenu.style.display = 'block';
+    }
+
+    function closeItemMenu() {
+      gameState.itemMenuOpen = false;
+      document.getElementById('itemMenu').style.display = 'none';
+    }
+
+    function useItem(key) {
+      if (inventory[key] <= 0) return;
+      inventory[key]--;
+
+      const item = heatItems[key];
+      activeHeatItems.push({
+        type: key,
+        duration: item.duration,
+        startTime: performance.now() / 1000,
+      });
+
+      player.temperature = Math.min(player.maxTemperature, player.temperature + 40);
       updateUI();
-      gameLoopStarted = true;
-      requestAnimationFrame(gameLoop);
-    });
+      closeItemMenu();
+    }
 
-    function bindHoldButton(id, key) {
+    // =========================
+    // Input binding
+    // =========================
+    function bindHoldButton(id, controlKey) {
       const el = document.getElementById(id);
-      const on = (e) => { if (e) e.preventDefault(); touchControls[key] = true; };
-      const off = (e) => { if (e) e.preventDefault(); touchControls[key] = false; };
+      const on = (e) => { if (e) e.preventDefault(); touchControls[controlKey] = true; };
+      const off = (e) => { if (e) e.preventDefault(); touchControls[controlKey] = false; };
+
       el.addEventListener('touchstart', on, { passive: false });
       el.addEventListener('touchend', off, { passive: false });
       el.addEventListener('touchcancel', off, { passive: false });
@@ -493,11 +759,25 @@
     bindHoldButton('rightBtn', 'right');
     bindHoldButton('jumpBtn', 'jump');
 
-    document.getElementById('useBtn').addEventListener('touchstart', (e) => { e.preventDefault(); openItemMenu(); }, { passive: false });
-    document.getElementById('useBtn').addEventListener('click', openItemMenu);
+    document.getElementById('useBtn').addEventListener('click', () => openItemMenu());
+    document.getElementById('useBtn').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      openItemMenu();
+    }, { passive: false });
 
-    document.getElementById('toolBtn').addEventListener('touchstart', (e) => { e.preventDefault(); setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'); }, { passive: false });
-    document.getElementById('toolBtn').addEventListener('click', () => setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe'));
+    function setTool(tool) {
+      player.currentTool = tool;
+      document.getElementById('toolBtn').textContent = tool === 'axe' ? '🔨 TOOL (1/2)' : '⛏️ TOOL (2/2)';
+      updateUI();
+    }
+
+    document.getElementById('toolBtn').addEventListener('click', () => {
+      setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
+    });
+    document.getElementById('toolBtn').addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      setTool(player.currentTool === 'axe' ? 'pickaxe' : 'axe');
+    }, { passive: false });
 
     document.addEventListener('keydown', (e) => {
       keys[e.key] = true;
@@ -515,128 +795,110 @@
       if (e.key === 'e' || e.key === 'E') interactionPressed = false;
     });
 
+    // mining clicks (world transform using camera x/y)
     canvas.addEventListener('click', (e) => {
-      if (!gameState.storeOpen && !gameState.itemMenuOpen) checkResourceClick(e.clientX, e.clientY);
+      if (gameState.storeOpen || gameState.itemMenuOpen) return;
+      const worldX = e.clientX + camera.x;
+      const worldY = e.clientY + camera.y;
+      checkResourceClick(worldX, worldY);
     });
 
     canvas.addEventListener('touchend', (e) => {
-      if (!gameState.storeOpen && !gameState.itemMenuOpen) {
-        const touch = e.changedTouches[0];
-        if (touch) checkResourceClick(touch.clientX, touch.clientY);
-      }
-    }, { passive: true });
+      if (gameState.storeOpen || gameState.itemMenuOpen) return;
+      const t = e.changedTouches[0];
+      if (!t) return;
+      checkResourceClick(t.clientX + camera.x, t.clientY + camera.y);
+    });
 
-    function checkResourceClick(x, y) {
-      for (let i = resources.length - 1; i >= 0; i--) {
-        const r = resources[i];
-        const sx = r.x, sy = r.y - camera.y;
-        if (x > sx && x < sx + r.width && y > sy && y < sy + r.height) {
-          if (player.currentTool === 'axe' && r.type === 'tree') { inventory.wood++; resources.splice(i, 1); updateUI(); }
-          else if (player.currentTool === 'pickaxe' && r.type === 'rock') { inventory.stone++; resources.splice(i, 1); updateUI(); }
-          return;
+    // =========================
+    // Gameplay helpers
+    // =========================
+    function getHeightMeters() {
+      return Math.max(0, Math.floor((WORLD_FLOOR_Y - player.y) * 0.8));
+    }
+
+    function currentBiomeName() {
+      return biomeFromHeightMeters(getHeightMeters()).name;
+    }
+
+    function checkResourceClick(worldX, worldY) {
+      // check visible chunks only for speed
+      const [cMin, cMax] = getVisibleChunkRange();
+      for (let ci = cMin; ci <= cMax; ci++) {
+        const chunk = chunks.get(ci);
+        if (!chunk) continue;
+
+        for (let i = chunk.resources.length - 1; i >= 0; i--) {
+          const r = chunk.resources[i];
+          if (
+            worldX > r.x && worldX < r.x + r.width &&
+            worldY > r.y && worldY < r.y + r.height
+          ) {
+            if (player.currentTool === 'axe' && r.type === 'tree') {
+              inventory.wood++;
+              chunk.resources.splice(i, 1);
+              updateUI();
+              return;
+            }
+            if (player.currentTool === 'pickaxe' && r.type === 'rock') {
+              inventory.stone++;
+              chunk.resources.splice(i, 1);
+              updateUI();
+              return;
+            }
+          }
         }
       }
     }
 
-    function openStore() {
-      if (gameState.storeOpen) return;
-      gameState.storeOpen = true;
-      const storeMenu = document.getElementById('storeMenu');
-      const storeItems = document.getElementById('storeItems');
-      storeItems.innerHTML = '';
+    function playerPlatformCollision(dt) {
+      const [cMin, cMax] = getVisibleChunkRange();
 
-      const buyItems = [
-        { id: 'hotPocket', name: 'Hot Pocket', price: 50, type: 'hotPocket' },
-        { id: 'heatLamp', name: 'Heat Lamp', price: 100, type: 'heatLamp' },
-        { id: 'thermalBlanket', name: 'Thermal Blanket', price: 150, type: 'thermalBlanket' }
-      ];
+      for (let ci = cMin; ci <= cMax; ci++) {
+        const chunk = chunks.get(ci);
+        if (!chunk) continue;
 
-      buyItems.forEach(item => {
-        const d = document.createElement('div');
-        d.className = 'store-item';
-        const c = document.createElement('canvas'); c.width = 50; c.height = 50;
-        c.getContext('2d').drawImage(generateItemSprite(item.type), 0, 0, 50, 50);
-        d.innerHTML = `
-          <div class="item-info">
-            <div class="item-name">🔥 ${item.name}</div>
-            <div class="item-details">Price: $${item.price}</div>
-          </div>
-          <div class="item-buttons"><button class="item-btn" onclick="buyItem('${item.id}', ${item.price})">Buy</button></div>`;
-        d.insertBefore(c, d.firstChild);
-        storeItems.appendChild(d);
-      });
-
-      storeItems.innerHTML += '<hr style="margin: 20px 0; border: 1px solid #555;">';
-
-      [{ id: 'wood', name: 'Wood', price: 20 }, { id: 'stone', name: 'Stone', price: 30 }].forEach(item => {
-        const d = document.createElement('div');
-        d.className = 'store-item';
-        d.innerHTML = `
-          <div class="item-info">
-            <div class="item-name">${item.name}</div>
-            <div class="item-details">Sell for: $${item.price} | Have: ${inventory[item.id]}</div>
-          </div>
-          <div class="item-buttons"><button class="item-btn" onclick="sellItem('${item.id}', ${item.price})">Sell</button></div>`;
-        storeItems.appendChild(d);
-      });
-
-      storeMenu.style.display = 'block';
-    }
-
-    function closeStore() { gameState.storeOpen = false; document.getElementById('storeMenu').style.display = 'none'; }
-
-    function buyItem(itemId, price) {
-      if (inventory.money >= price) { inventory.money -= price; inventory[itemId]++; updateUI(); openStore(); }
-      else alert('Not enough money!');
-    }
-
-    function sellItem(itemId, price) {
-      if (inventory[itemId] > 0) { inventory.money += price; inventory[itemId]--; updateUI(); openStore(); }
-    }
-
-    function openItemMenu() {
-      gameState.itemMenuOpen = true;
-      const itemMenu = document.getElementById('itemMenu');
-      const itemOptions = document.getElementById('itemOptions');
-      itemOptions.innerHTML = '';
-
-      Object.keys(heatItems).forEach(k => {
-        if (inventory[k] > 0) {
-          const item = heatItems[k];
-          const d = document.createElement('div');
-          d.className = 'item-option';
-          const c = document.createElement('canvas'); c.width = 50; c.height = 50;
-          c.getContext('2d').drawImage(generateItemSprite(k), 0, 0, 50, 50);
-
-          d.innerHTML = `
-            <div class="item-info">
-              <div class="item-name">🔥 ${item.name}</div>
-              <div class="item-details">Duration: ${item.duration}s | Have: ${inventory[k]}</div>
-            </div>
-            <div class="item-buttons"><button class="item-btn" onclick="useItem('${k}')">Use</button></div>`;
-          d.insertBefore(c, d.firstChild);
-          itemOptions.appendChild(d);
+        for (const p of chunk.platforms) {
+          if (
+            player.velocityY >= 0 &&
+            player.y + player.height >= p.y &&
+            player.y + player.height <= p.y + p.height + Math.max(10, player.velocityY + 2) &&
+            player.x + player.width > p.x &&
+            player.x < p.x + p.width
+          ) {
+            player.y = p.y - player.height;
+            player.velocityY = 0;
+            player.isJumping = false;
+          }
         }
-      });
-
-      if (!itemOptions.children.length) itemOptions.innerHTML = '<p style="color: #aaa;">No heat items available</p>';
-      itemMenu.style.display = 'block';
-    }
-
-    function closeItemMenu() { gameState.itemMenuOpen = false; document.getElementById('itemMenu').style.display = 'none'; }
-
-    function useItem(itemKey) {
-      if (inventory[itemKey] > 0) {
-        inventory[itemKey]--;
-        const item = heatItems[itemKey];
-        activeHeatItems.push({ type: itemKey, duration: item.duration, startTime: performance.now() / 1000 });
-        player.temperature = Math.min(player.temperature + 40, player.maxTemperature);
-        updateUI();
-        closeItemMenu();
       }
     }
 
+    function nearStoreAndInteract() {
+      const [cMin, cMax] = getVisibleChunkRange();
+      for (let ci = cMin; ci <= cMax; ci++) {
+        const chunk = chunks.get(ci);
+        if (!chunk) continue;
+        for (const s of chunk.stores) {
+          const dist = Math.hypot(
+            (player.x + player.width * 0.5) - (s.x + s.width * 0.5),
+            (player.y + player.height * 0.5) - (s.y + s.height * 0.5)
+          );
+          if (dist < 110) {
+            openStore();
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // =========================
+    // Update / Render
+    // =========================
     function updateUI() {
+      document.getElementById('heightValue').textContent = getHeightMeters();
+      document.getElementById('biomeValue').textContent = currentBiomeName();
       document.getElementById('money').textContent = inventory.money;
       document.getElementById('tempValue').textContent = Math.floor(player.temperature);
       document.getElementById('woodCount').textContent = inventory.wood;
@@ -645,29 +907,28 @@
       document.getElementById('heatLampCount').textContent = inventory.heatLamp;
       document.getElementById('thermalBlanketCount').textContent = inventory.thermalBlanket;
       document.getElementById('toolDisplay').textContent = player.currentTool === 'axe' ? 'Axe' : 'Pickaxe';
-      document.getElementById('areaLevel').textContent = player.area;
 
-      const tempPercent = ((player.temperature - 32) / (212 - 32)) * 100;
-      document.getElementById('temperatureBar').style.width = Math.max(0, Math.min(100, tempPercent)) + '%';
+      const pct = ((player.temperature - 32) / 180) * 100;
+      document.getElementById('temperatureBar').style.width = Math.max(0, Math.min(100, pct)) + '%';
 
-      const activeDiv = document.getElementById('activeHeatItems');
-      activeDiv.innerHTML = '';
+      const active = document.getElementById('activeHeatItems');
+      active.innerHTML = '';
       const now = performance.now() / 1000;
-      activeHeatItems.forEach(item => {
-        const remaining = Math.ceil(item.duration - (now - item.startTime));
-        if (remaining > 0) {
+      for (const item of activeHeatItems) {
+        const remain = Math.ceil(item.duration - (now - item.startTime));
+        if (remain > 0) {
           const d = document.createElement('div');
           d.className = 'heat-item-timer';
-          d.textContent = `${heatItems[item.type].name}: ${remaining}s`;
-          activeDiv.appendChild(d);
+          d.textContent = `${heatItems[item.type].name}: ${remain}s`;
+          active.appendChild(d);
         }
-      });
+      }
     }
 
     function updatePlayer(dt) {
       pollGamepad();
+      maintainChunksAroundPlayer();
 
-      // Controller one-shots
       if (gamepadState.usePressed) {
         if (gameState.itemMenuOpen) closeItemMenu();
         else openItemMenu();
@@ -687,7 +948,7 @@
         if (keys['ArrowLeft'] || keys['a'] || keys['A'] || touchControls.left || gamepadState.left) player.velocityXTarget = -5;
         if (keys['ArrowRight'] || keys['d'] || keys['D'] || touchControls.right || gamepadState.right) player.velocityXTarget = 5;
 
-        const jumpInput = (keys[' '] || keys['w'] || keys['W'] || touchControls.jump || gamepadState.jumpPressed);
+        const jumpInput = keys[' '] || keys['w'] || keys['W'] || touchControls.jump || gamepadState.jumpPressed;
         if (jumpInput && !player.isJumping) {
           player.velocityY = -12;
           player.isJumping = true;
@@ -702,38 +963,28 @@
       player.x += player.velocityX * (dt * 60);
       player.y += player.velocityY * (dt * 60);
 
-      if (player.velocityY >= 0 && player.y + player.height >= ground.y) {
-        player.y = ground.y - player.height;
+      // World bounds
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.width > WORLD_WIDTH) player.x = WORLD_WIDTH - player.width;
+      if (player.y + player.height > WORLD_FLOOR_Y) {
+        player.y = WORLD_FLOOR_Y - player.height;
         player.velocityY = 0;
         player.isJumping = false;
       }
 
-      platforms.forEach(p => {
-        if (
-          player.velocityY >= 0 &&
-          player.y + player.height >= p.y &&
-          player.y + player.height <= p.y + p.height + Math.max(10, player.velocityY + 2) &&
-          player.x + player.width > p.x && player.x < p.x + p.width
-        ) {
-          player.y = p.y - player.height;
-          player.velocityY = 0;
-          player.isJumping = false;
-        }
-      });
+      playerPlatformCollision(dt);
 
       const interactDown = !!(keys['e'] || keys['E']);
-      if (interactDown && !interactionPressed && !gameState.itemMenuOpen && !gameState.storeOpen) {
-        for (const s of stores) {
-          const dist = Math.hypot((player.x + player.width / 2) - (s.x + s.width / 2), (player.y + player.height / 2) - (s.y + s.height / 2));
-          if (dist < 110) { openStore(); break; }
-        }
+      if (interactDown && !interactionPressed && !gameState.storeOpen && !gameState.itemMenuOpen) {
+        nearStoreAndInteract();
       }
       interactionPressed = interactDown;
 
+      // Temperature
       player.temperature -= BASE_TEMP_DECAY_PER_SEC * dt;
 
       const now = performance.now() / 1000;
-      activeHeatItems = activeHeatItems.filter(item => {
+      activeHeatItems = activeHeatItems.filter((item) => {
         const elapsed = now - item.startTime;
         if (elapsed < item.duration) {
           player.temperature += 0.15 * (dt * 60);
@@ -743,7 +994,6 @@
       });
 
       player.temperature = Math.max(32, Math.min(player.maxTemperature, player.temperature));
-
       if (!gameState.gameOver && player.temperature <= 32) {
         gameState.gameOver = true;
         alert('You froze! Game Over!');
@@ -751,51 +1001,91 @@
         return;
       }
 
-      if (player.area < AREA_COUNT) {
-        const threshold = areaTopY(player.area) - 120;
-        if (player.y < threshold) {
-          player.area++;
-          generateLevel(player.area);
-        }
-      }
+      // Smooth camera follow (X + Y scrolling)
+      const targetCamX = player.x - canvas.width * 0.5 + player.width * 0.5;
+      const targetCamY = player.y - canvas.height * 0.38;
 
-      camera.y = Math.max(0, player.y - canvas.height / 3);
-      if (player.x < 0) player.x = 0;
-      if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+      camera.x += (targetCamX - camera.x) * Math.min(1, dt * 6);
+      camera.y += (targetCamY - camera.y) * Math.min(1, dt * 6);
+
+      // clamp camera
+      camera.x = Math.max(0, Math.min(WORLD_WIDTH - canvas.width, camera.x));
+      camera.y = Math.max(0, camera.y); // allows endless up
+    }
+
+    function drawBackground() {
+      const biome = biomeFromHeightMeters(getHeightMeters());
+      ctx.fillStyle = biome.sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // far mountain parallax
+      ctx.save();
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = '#8da9c4';
+      const parallaxX = camera.x * 0.25;
+      for (let i = -2; i < 8; i++) {
+        const baseX = i * 280 - (parallaxX % 280);
+        ctx.beginPath();
+        ctx.moveTo(baseX, canvas.height);
+        ctx.lineTo(baseX + 140, canvas.height - 220);
+        ctx.lineTo(baseX + 280, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
     }
 
     function render() {
-      ctx.fillStyle = '#e8f4f8';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
 
-      const groundScreenY = ground.y - camera.y;
+      // Floor
+      const floorScreenY = WORLD_FLOOR_Y - camera.y;
       ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, groundScreenY, canvas.width, ground.height);
-      ctx.strokeStyle = '#cccccc';
+      ctx.fillRect(-camera.x, floorScreenY, WORLD_WIDTH, 220);
+      ctx.strokeStyle = '#cfd9e2';
       ctx.lineWidth = 2;
-      ctx.strokeRect(0, groundScreenY, canvas.width, ground.height);
+      ctx.strokeRect(-camera.x, floorScreenY, WORLD_WIDTH, 220);
 
-      platforms.forEach(p => {
-        const y = p.y - camera.y;
-        if (y > -100 && y < canvas.height + 100) ctx.drawImage(generatePlatformSprite(p.width, p.height, p.type), p.x, y);
-      });
+      const [cMin, cMax] = getVisibleChunkRange();
+      for (let ci = cMin; ci <= cMax; ci++) {
+        const chunk = chunks.get(ci);
+        if (!chunk) continue;
 
-      resources.forEach(r => {
-        const y = r.y - camera.y;
-        if (y > -100 && y < canvas.height + 100) ctx.drawImage(generateResourceSprite(r.type), r.x, y);
-      });
-
-      stores.forEach(s => {
-        const y = s.y - camera.y;
-        if (y > -100 && y < canvas.height + 100) {
-          ctx.fillStyle = '#8b4513'; ctx.fillRect(s.x, y, s.width, s.height);
-          ctx.fillStyle = '#d2691e'; ctx.font = '20px Arial'; ctx.textAlign = 'center';
-          ctx.fillText('🛍️', s.x + s.width / 2, y + 35);
+        for (const p of chunk.platforms) {
+          const sx = p.x - camera.x;
+          const sy = p.y - camera.y;
+          if (sy > -120 && sy < canvas.height + 120 && sx > -300 && sx < canvas.width + 300) {
+            ctx.drawImage(generatePlatformSprite(p.width, p.height, p.type), sx, sy);
+          }
         }
-      });
 
+        for (const r of chunk.resources) {
+          const sx = r.x - camera.x;
+          const sy = r.y - camera.y;
+          if (sy > -100 && sy < canvas.height + 100 && sx > -100 && sx < canvas.width + 100) {
+            ctx.drawImage(generateResourceSprite(r.type), sx, sy);
+          }
+        }
+
+        for (const s of chunk.stores) {
+          const sx = s.x - camera.x;
+          const sy = s.y - camera.y;
+          if (sy > -120 && sy < canvas.height + 120 && sx > -120 && sx < canvas.width + 120) {
+            ctx.fillStyle = '#8b4513';
+            ctx.fillRect(sx, sy, s.width, s.height);
+            ctx.fillStyle = '#d2691e';
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🛍️', sx + s.width * 0.5, sy + 36);
+          }
+        }
+      }
+
+      const px = player.x - camera.x;
       const py = player.y - camera.y;
-      ctx.drawImage(generatePlayerSprite(player.temperature), player.x, py);
+      ctx.drawImage(generatePlayerSprite(player.temperature), px, py);
+
+      // top fog
       ctx.drawImage(generateFogSprite(canvas.width, Math.floor(canvas.height / 3)), 0, 0);
     }
 
@@ -806,10 +1096,38 @@
       updatePlayer(dt);
       updateUI();
       render();
+
       if (!gameState.gameOver) requestAnimationFrame(gameLoop);
     }
 
-    // Expose inline onclick handlers
+    // =========================
+    // Start
+    // =========================
+    document.getElementById('startBtn').addEventListener('click', () => {
+      if (gameLoopStarted) return;
+      gameLoopStarted = true;
+
+      const musicUrl = document.getElementById('musicUrl').value.trim();
+      gameState.musicUrl = musicUrl;
+
+      if (musicUrl) {
+        gameState.music = new Audio(musicUrl);
+        gameState.music.loop = true;
+        gameState.music.volume = 0.3;
+        gameState.music.play().catch((e) => console.log('Audio play failed:', e));
+      }
+
+      document.getElementById('menu').style.display = 'none';
+      document.getElementById('gameContainer').style.display = 'block';
+      gameState.menu = false;
+
+      resizeCanvas();
+      maintainChunksAroundPlayer();
+      updateUI();
+      requestAnimationFrame(gameLoop);
+    });
+
+    // expose menu funcs for inline buttons
     window.closeStore = closeStore;
     window.closeItemMenu = closeItemMenu;
     window.buyItem = buyItem;
